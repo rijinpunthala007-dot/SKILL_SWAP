@@ -1,0 +1,151 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --scroll-thumb: #4f46e5;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scroll-thumb) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: var(--scroll-thumb);
+    border-radius: 9999px;
+  }
+
+  body {
+    @apply bg-surface text-white font-sans antialiased;
+    background-image:
+      radial-gradient(ellipse at 20% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(167, 139, 250, 0.1) 0%, transparent 50%);
+    min-height: 100vh;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+}
+
+@layer components {
+  /* Glassmorphism card */
+  .glass-card {
+    @apply bg-surface-card/80 backdrop-blur-xl border border-surface-border rounded-2xl;
+    background: linear-gradient(135deg, rgba(26, 26, 53, 0.9) 0%, rgba(34, 34, 74, 0.8) 100%);
+  }
+
+  /* Primary button */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl
+           bg-brand-600 hover:bg-brand-500 active:bg-brand-700
+           text-white font-medium text-sm
+           transition-all duration-200 ease-out
+           shadow-lg shadow-brand-900/30
+           hover:shadow-brand-500/30 hover:scale-[1.02]
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100
+           focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 focus:ring-offset-surface;
+  }
+
+  /* Secondary button */
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl
+           bg-surface-elevated hover:bg-surface-border
+           text-white font-medium text-sm border border-surface-border
+           transition-all duration-200 ease-out
+           hover:scale-[1.02]
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100
+           focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 focus:ring-offset-surface;
+  }
+
+  /* Ghost/danger button */
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl
+           bg-red-900/30 hover:bg-red-900/60 border border-red-800/50
+           text-red-400 font-medium text-sm
+           transition-all duration-200 ease-out
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Input */
+  .input {
+    @apply w-full px-4 py-2.5 rounded-xl
+           bg-surface-elevated border border-surface-border
+           text-white placeholder-white/30
+           text-sm
+           transition-all duration-200
+           focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/50
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Badge */
+  .badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-brand {
+    @apply badge bg-brand-500/20 text-brand-300 border border-brand-500/30;
+  }
+
+  .badge-success {
+    @apply badge bg-emerald-500/20 text-emerald-300 border border-emerald-500/30;
+  }
+
+  .badge-warning {
+    @apply badge bg-amber-500/20 text-amber-300 border border-amber-500/30;
+  }
+
+  .badge-error {
+    @apply badge bg-red-500/20 text-red-300 border border-red-500/30;
+  }
+
+  /* Skeleton loader */
+  .skeleton {
+    @apply animate-shimmer rounded-lg bg-gradient-to-r
+           from-surface-elevated via-surface-border to-surface-elevated
+           bg-[length:1000px_100%];
+  }
+
+  /* Avatar */
+  .avatar {
+    @apply rounded-full object-cover ring-2 ring-brand-500/30;
+  }
+
+  /* Nav link */
+  .nav-link {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
+           text-white/60 hover:text-white hover:bg-surface-elevated
+           transition-all duration-200;
+  }
+
+  .nav-link-active {
+    @apply nav-link text-white bg-brand-600/30 border border-brand-500/20;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-brand-400 to-violet-400;
+  }
+
+  .glow-brand {
+    box-shadow: 0 0 30px rgba(99, 102, 241, 0.3);
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
