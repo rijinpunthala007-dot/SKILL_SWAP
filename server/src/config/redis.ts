@@ -23,8 +23,12 @@ export async function connectRedis(): Promise<void> {
     const client = getRedisClient();
     await client.connect();
   } catch (error) {
-    logger.error({ error }, 'Redis connection failed. Please ensure Redis is running.');
-    process.exit(1);
+    logger.warn(
+      { error },
+      'Redis connection unavailable — running without Redis (rate limiting & presence disabled). Server will still start.'
+    );
+    // Do NOT exit — the app works without Redis in single-instance/local mode.
+    // In production (Render), ensure REDIS_URL is set correctly.
   }
 }
 

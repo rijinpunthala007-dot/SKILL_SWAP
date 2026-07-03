@@ -38,8 +38,12 @@ export function setupSocketServer(httpServer: HttpServer): SocketServer {
       logger.info('Socket.IO Redis adapter initialized');
     })
     .catch((error) => {
-      logger.error({ error }, 'Failed to initialize Socket.IO Redis adapter');
-      process.exit(1);
+      logger.warn(
+        { error },
+        'Socket.IO Redis adapter unavailable — running without Redis adapter (single-instance mode). Chat still works.'
+      );
+      // Do NOT exit — server runs fine on a single instance without the Redis adapter.
+      // In production (Render), Redis will be available via REDIS_URL env var.
     });
 
   // ── Auth Middleware ─────────────────────────────────────────────────────────
