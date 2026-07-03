@@ -82,10 +82,8 @@ export function errorHandler(
     success: false,
     error: {
       code: 'INTERNAL_ERROR',
-      message:
-        env.NODE_ENV === 'production'
-          ? 'An unexpected error occurred'
-          : (error as Error)?.message ?? 'Unknown error',
+      message: (error as Error)?.message ?? 'Unknown error',
+      stack: (error as Error)?.stack ?? ''
     },
   });
 }
