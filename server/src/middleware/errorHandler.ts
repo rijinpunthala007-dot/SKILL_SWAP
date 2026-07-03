@@ -3,7 +3,7 @@ import { ZodError } from 'zod';
 import mongoose from 'mongoose';
 import { AppError } from '../utils/AppError';
 import { logger } from '../config/logger';
-import { env } from '../config/env';
+
 
 export function errorHandler(
   error: unknown,
