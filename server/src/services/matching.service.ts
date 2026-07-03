@@ -1,5 +1,6 @@
 import { IUser } from '../models/User.model';
 import { getRedisClient } from '../config/redis';
+import { logger } from '../config/logger';
 
 /**
  * Strategy interface — swap in ML-based ranking later without touching calling code.
@@ -229,14 +230,24 @@ export class MatchingService {
     const scored = await Promise.all(
       candidates.map(async (candidate) => {
         const cacheKey = `match:${viewer._id}:${candidate._id}`;
-        const cached = await redis.get(cacheKey);
+        
+        let cached: string | null = null;
+        try {
+          cached = await redis.get(cacheKey);
+        } catch (error) {
+          logger.warn({ error }, 'Redis cache get failed, bypassing cache');
+        }
 
         let matchScore: number;
         if (cached !== null) {
           matchScore = parseFloat(cached);
         } else {
           matchScore = this.strategy.score(viewer, candidate);
-          await redis.set(cacheKey, matchScore.toString(), 'EX', MATCH_CACHE_TTL);
+          try {
+            await redis.set(cacheKey, matchScore.toString(), 'EX', MATCH_CACHE_TTL);
+          } catch (error) {
+            logger.warn({ error }, 'Redis cache set failed');
+          }
         }
 
         return {

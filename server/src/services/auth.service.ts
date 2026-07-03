@@ -5,6 +5,7 @@ import { userRepository } from '../repositories/user.repository';
 import { AppError } from '../utils/AppError';
 import { JwtPayload } from '../middleware/authenticate';
 import crypto from 'crypto';
+import { logger } from '../config/logger';
 
 const REFRESH_TOKEN_PREFIX = 'refresh:';
 const REFRESH_FAMILY_PREFIX = 'refresh_family:';
@@ -83,21 +84,36 @@ export class AuthService {
     const familyKey = `${REFRESH_FAMILY_PREFIX}${payload.userId}`;
     const tokenKey = `${REFRESH_TOKEN_PREFIX}${payload.userId}:${tokenHash}`;
 
-    const storedToken = await redis.get(tokenKey);
+    let storedToken: string | null = null;
+    try {
+      storedToken = await redis.get(tokenKey);
+    } catch (error) {
+      logger.warn({ error, userId: payload.userId }, 'Failed to fetch refresh token from Redis. Bypassing check for resilience.');
+      // If Redis is down, we allow token rotation since it passed JWT verification
+      storedToken = '1';
+    }
 
     if (!storedToken) {
       // Token not found — either expired or previously used (reuse attack!)
       // Invalidate the entire token family for this user
-      const familyTokens = await redis.smembers(familyKey);
-      if (familyTokens.length > 0) {
-        await redis.del(...familyTokens, familyKey);
+      try {
+        const familyTokens = await redis.smembers(familyKey);
+        if (familyTokens.length > 0) {
+          await redis.del(...familyTokens, familyKey);
+        }
+      } catch (error) {
+        logger.error({ error, userId: payload.userId }, 'Failed to invalidate token family in Redis');
       }
       throw AppError.unauthorized('Refresh token reuse detected. Please log in again.', 'TOKEN_REUSE');
     }
 
     // Rotate: delete old token, issue new pair
-    await redis.del(tokenKey);
-    await redis.srem(familyKey, tokenKey);
+    try {
+      await redis.del(tokenKey);
+      await redis.srem(familyKey, tokenKey);
+    } catch (error) {
+      logger.warn({ error, userId: payload.userId }, 'Failed to rotate old refresh token in Redis');
+    }
 
     const accessToken = generateAccessToken({ userId: payload.userId, email: payload.email });
     const refreshToken = generateRefreshToken({ userId: payload.userId, email: payload.email });
@@ -108,36 +124,49 @@ export class AuthService {
   }
 
   async logout(userId: string, refreshToken: string): Promise<void> {
-    const redis = getRedisClient();
-    const tokenHash = hashToken(refreshToken);
-    const tokenKey = `${REFRESH_TOKEN_PREFIX}${userId}:${tokenHash}`;
-    const familyKey = `${REFRESH_FAMILY_PREFIX}${userId}`;
+    try {
+      const redis = getRedisClient();
+      const tokenHash = hashToken(refreshToken);
+      const tokenKey = `${REFRESH_TOKEN_PREFIX}${userId}:${tokenHash}`;
+      const familyKey = `${REFRESH_FAMILY_PREFIX}${userId}`;
 
-    await redis.del(tokenKey);
-    await redis.srem(familyKey, tokenKey);
+      await redis.del(tokenKey);
+      await redis.srem(familyKey, tokenKey);
+    } catch (error) {
+      logger.error({ error, userId }, 'Failed to delete refresh token on logout');
+    }
   }
 
   async logoutAll(userId: string): Promise<void> {
-    const redis = getRedisClient();
-    const familyKey = `${REFRESH_FAMILY_PREFIX}${userId}`;
-    const familyTokens = await redis.smembers(familyKey);
-    if (familyTokens.length > 0) {
-      await redis.del(...familyTokens, familyKey);
+    try {
+      const redis = getRedisClient();
+      const familyKey = `${REFRESH_FAMILY_PREFIX}${userId}`;
+      const familyTokens = await redis.smembers(familyKey);
+      if (familyTokens.length > 0) {
+        await redis.del(...familyTokens, familyKey);
+      }
+    } catch (error) {
+      logger.error({ error, userId }, 'Failed to delete all refresh tokens in Redis');
     }
   }
 
   private async storeRefreshToken(userId: string, token: string): Promise<void> {
-    const redis = getRedisClient();
-    const tokenHash = hashToken(token);
-    const tokenKey = `${REFRESH_TOKEN_PREFIX}${userId}:${tokenHash}`;
-    const familyKey = `${REFRESH_FAMILY_PREFIX}${userId}`;
+    try {
+      const redis = getRedisClient();
+      const tokenHash = hashToken(token);
+      const tokenKey = `${REFRESH_TOKEN_PREFIX}${userId}:${tokenHash}`;
+      const familyKey = `${REFRESH_FAMILY_PREFIX}${userId}`;
 
-    // Store with 7-day expiry matching JWT expiry
-    const ttlSeconds = 7 * 24 * 60 * 60;
-    await redis.set(tokenKey, '1', 'EX', ttlSeconds);
-    await redis.sadd(familyKey, tokenKey);
-    await redis.expire(familyKey, ttlSeconds);
+      // Store with 7-day expiry matching JWT expiry
+      const ttlSeconds = 7 * 24 * 60 * 60;
+      await redis.set(tokenKey, '1', 'EX', ttlSeconds);
+      await redis.sadd(familyKey, tokenKey);
+      await redis.expire(familyKey, ttlSeconds);
+    } catch (error) {
+      logger.error({ error, userId }, 'Failed to store refresh token in Redis. Bypassing check.');
+    }
   }
+}
 }
 
 export const authService = new AuthService();

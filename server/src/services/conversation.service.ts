@@ -1,6 +1,7 @@
 import { conversationRepository, messageRepository } from '../repositories/conversation.repository';
 import { AppError } from '../utils/AppError';
 import { getRedisClient } from '../config/redis';
+import { logger } from '../config/logger';
 
 const PRESENCE_TTL = 35; // seconds
 
@@ -79,32 +80,58 @@ export class PresenceService {
   private readonly redis = getRedisClient();
 
   async setOnline(userId: string): Promise<void> {
-    await this.redis.set(`presence:${userId}`, '1', 'EX', PRESENCE_TTL);
+    try {
+      await this.redis.set(`presence:${userId}`, '1', 'EX', PRESENCE_TTL);
+    } catch (error) {
+      logger.warn({ error, userId }, 'Failed to set presence to online');
+    }
   }
 
   async setOffline(userId: string): Promise<void> {
-    await this.redis.del(`presence:${userId}`);
+    try {
+      await this.redis.del(`presence:${userId}`);
+    } catch (error) {
+      logger.warn({ error, userId }, 'Failed to set presence to offline');
+    }
   }
 
   async refreshPresence(userId: string): Promise<void> {
-    await this.redis.expire(`presence:${userId}`, PRESENCE_TTL);
+    try {
+      await this.redis.expire(`presence:${userId}`, PRESENCE_TTL);
+    } catch (error) {
+      logger.warn({ error, userId }, 'Failed to refresh presence');
+    }
   }
 
   async isOnline(userId: string): Promise<boolean> {
-    const val = await this.redis.get(`presence:${userId}`);
-    return val !== null;
+    try {
+      const val = await this.redis.get(`presence:${userId}`);
+      return val !== null;
+    } catch (error) {
+      logger.warn({ error, userId }, 'Failed to check presence. Bypassing check.');
+      return false;
+    }
   }
 
   async getOnlineStatuses(userIds: string[]): Promise<Record<string, boolean>> {
     if (userIds.length === 0) return {};
-    const pipeline = this.redis.pipeline();
-    userIds.forEach((id) => pipeline.exists(`presence:${id}`));
-    const results = await pipeline.exec();
-    const statuses: Record<string, boolean> = {};
-    userIds.forEach((id, i) => {
-      statuses[id] = (results?.[i]?.[1] as number) === 1;
-    });
-    return statuses;
+    try {
+      const pipeline = this.redis.pipeline();
+      userIds.forEach((id) => pipeline.exists(`presence:${id}`));
+      const results = await pipeline.exec();
+      const statuses: Record<string, boolean> = {};
+      userIds.forEach((id, i) => {
+        statuses[id] = (results?.[i]?.[1] as number) === 1;
+      });
+      return statuses;
+    } catch (error) {
+      logger.warn({ error }, 'Failed to batch get online statuses from Redis. Bypassing check.');
+      const statuses: Record<string, boolean> = {};
+      userIds.forEach((id) => {
+        statuses[id] = false;
+      });
+      return statuses;
+    }
   }
 }
 
