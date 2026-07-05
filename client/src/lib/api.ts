@@ -7,7 +7,7 @@ const BASE_URL = import.meta.env.VITE_API_URL ?? '/api';
 export const api = axios.create({
   baseURL: BASE_URL,
   withCredentials: true, // send httpOnly refresh token cookie
-  timeout: 15000,
+  timeout: 60000, // 60 seconds (Render free tier can take up to 50s to wake up)
 });
 
 // ── Request interceptor: attach access token ──────────────────────────────────
