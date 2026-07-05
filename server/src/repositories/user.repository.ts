@@ -38,7 +38,12 @@ export class UserRepository {
     };
 
     if (query) {
-      filter.$text = { $search: query };
+      filter.$or = [
+        { name: { $regex: query, $options: 'i' } },
+        { bio: { $regex: query, $options: 'i' } },
+        { 'skillsOffered.skillName': { $regex: query, $options: 'i' } },
+        { 'skillsWanted.skillName': { $regex: query, $options: 'i' } },
+      ];
     }
 
     const [users, total] = await Promise.all([
