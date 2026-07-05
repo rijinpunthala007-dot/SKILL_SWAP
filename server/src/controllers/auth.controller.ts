@@ -4,10 +4,12 @@ import { asyncHandler } from '../utils/asyncHandler';
 import { successResponse } from '../utils/apiResponse';
 import { env } from '../config/env';
 
+const isProdOrHttps = env.NODE_ENV === 'production' || env.CLIENT_URL.startsWith('https://');
+
 const COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: env.NODE_ENV === 'production',
-  sameSite: (env.NODE_ENV === 'production' ? 'none' : 'strict') as 'none' | 'strict',
+  secure: isProdOrHttps,
+  sameSite: (isProdOrHttps ? 'none' : 'strict') as 'none' | 'strict',
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 };
 
