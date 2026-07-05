@@ -35,10 +35,11 @@ const app = express();
 const httpServer = http.createServer(app);
 
 // ── Security ────────────────────────────────────────────────────────────────
+app.set('trust proxy', 1); // Essential for rate limiting behind a reverse proxy like Render
 app.use(helmet());
 app.use(
   cors({
-    origin: env.CLIENT_URL,
+    origin: [env.CLIENT_URL, env.CLIENT_URL.replace(/\/$/, '')],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id'],

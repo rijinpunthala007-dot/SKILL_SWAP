@@ -7,7 +7,7 @@ import { env } from '../config/env';
 const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: env.NODE_ENV === 'production',
-  sameSite: 'strict' as const,
+  sameSite: (env.NODE_ENV === 'production' ? 'none' : 'strict') as 'none' | 'strict',
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 };
 
