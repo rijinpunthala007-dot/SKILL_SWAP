@@ -48,6 +48,7 @@ export class UserRepository {
 
     const [users, total] = await Promise.all([
       UserModel.find(filter)
+        .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
         .select('-password')
