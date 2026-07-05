@@ -39,7 +39,7 @@ app.set('trust proxy', 1); // Essential for rate limiting behind a reverse proxy
 app.use(helmet());
 app.use(
   cors({
-    origin: [env.CLIENT_URL, env.CLIENT_URL.replace(/\/$/, '')],
+    origin: [env.CLIENT_URL.trim(), env.CLIENT_URL.trim().replace(/\/$/, '')],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id'],
