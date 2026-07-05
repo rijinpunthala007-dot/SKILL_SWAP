@@ -4,7 +4,7 @@ import { Bell, Check, X, ArrowUpRight, Clock, Inbox } from 'lucide-react';
 import { requestsApi } from '../services/api.service';
 import { UserCardSkeleton } from '../components/ui/Skeletons';
 import { toast } from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import clsx from 'clsx';
 
@@ -133,7 +133,12 @@ export function RequestsPage() {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-white">{otherUser.name}</span>
+                      <Link 
+                        to={`/profile/${otherUser._id}`} 
+                        className="font-semibold text-white hover:text-brand-300 transition-colors"
+                      >
+                        {otherUser.name}
+                      </Link>
                       <span className={STATUS_BADGE[req.status] ?? 'badge-brand'}>{req.status}</span>
                     </div>
                     <p className="text-sm text-white/50 mt-1">

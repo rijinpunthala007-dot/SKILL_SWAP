@@ -33,8 +33,8 @@ export function DiscoverPage() {
   };
 
   const isSearching = Boolean(debouncedSearch);
-  const displayUsers = isSearching ? users : topMatches;
-  const isLoadingAny = isSearching ? isLoading || isFetching : loadingMatches;
+  const displayUsers = isSearching ? users : (topMatches.length > 0 ? topMatches : users);
+  const isLoadingAny = isSearching ? isLoading || isFetching : (loadingMatches || isLoading);
 
   return (
     <div className="max-w-5xl mx-auto px-4 md:px-8 py-8">
@@ -74,7 +74,9 @@ export function DiscoverPage() {
         ) : (
           <>
             <Sparkles className="w-4 h-4 text-brand-400" />
-            <h2 className="text-sm font-medium text-white/60">Best matches for your skill goals</h2>
+            <h2 className="text-sm font-medium text-white/60">
+              {topMatches.length > 0 ? 'Best matches for your skill goals' : 'Recently joined users'}
+            </h2>
           </>
         )}
       </div>
@@ -94,8 +96,8 @@ export function DiscoverPage() {
             </>
           ) : (
             <>
-              <h3 className="text-lg font-semibold text-white/40">No matches yet</h3>
-              <p className="text-white/25 text-sm mt-1">Add skills to your profile to see matches</p>
+              <h3 className="text-lg font-semibold text-white/40">No users yet</h3>
+              <p className="text-white/25 text-sm mt-1">Be the first to create a profile!</p>
             </>
           )}
         </div>

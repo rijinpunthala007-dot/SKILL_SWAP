@@ -9,6 +9,17 @@ import type { SkillOffered, SkillWanted } from '../types';
 const PROFICIENCY_LEVELS = ['Beginner', 'Intermediate', 'Advanced'] as const;
 const PRIORITY_LEVELS = ['Low', 'Medium', 'High'] as const;
 
+const TECH_AVATARS = [
+  'https://api.dicebear.com/7.x/bottts/svg?seed=Felix&colors=cyan,blue',
+  'https://api.dicebear.com/7.x/bottts/svg?seed=Aneka&colors=purple,pink',
+  'https://api.dicebear.com/7.x/bottts/svg?seed=Jack&colors=green,emerald',
+  'https://api.dicebear.com/7.x/bottts/svg?seed=Oreo&colors=amber,orange',
+  'https://api.dicebear.com/7.x/bottts/svg?seed=Simon&colors=indigo,violet',
+  'https://api.dicebear.com/7.x/bottts/svg?seed=Zoey&colors=red,rose',
+  'https://api.dicebear.com/7.x/bottts/svg?seed=Max&colors=yellow,amber',
+  'https://api.dicebear.com/7.x/bottts/svg?seed=Luna&colors=fuchsia,purple',
+];
+
 export function ProfilePage() {
   const qc = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -85,11 +96,6 @@ export function ProfilePage() {
     setNewWantedSkill('');
   };
 
-  const generateAvatar = () => {
-    const seed = Math.random().toString(36).substring(7);
-    setAvatar(`https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`);
-  };
-
   if (isLoading) return <ProfileSkeleton />;
 
   return (
@@ -134,13 +140,20 @@ export function ProfilePage() {
                   </div>
                 )}
               </div>
-              <button 
-                onClick={generateAvatar}
-                type="button" 
-                className="text-xs text-brand-400 hover:text-brand-300 transition-colors bg-white/5 px-3 py-1.5 rounded-lg"
-              >
-                Auto-generate
-              </button>
+              <div className="grid grid-cols-4 gap-2 mt-4">
+                {TECH_AVATARS.map((url) => (
+                  <button
+                    key={url}
+                    type="button"
+                    onClick={() => setAvatar(url)}
+                    className={`w-10 h-10 rounded-lg overflow-hidden border-2 transition-all ${
+                      avatar === url ? 'border-brand-500 scale-110' : 'border-transparent hover:border-brand-500/50'
+                    }`}
+                  >
+                    <img src={url} alt="Tech Avatar Option" className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="flex-1 space-y-4">
