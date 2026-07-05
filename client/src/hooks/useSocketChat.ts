@@ -47,6 +47,9 @@ export function useSocketChat({
     socket.on('message_error', ({ message: errMsg }: { message: string }) => {
       toast.error(errMsg ?? 'Message failed to send');
     });
+    socket.on('connect_error', (err) => {
+      toast.error(`Socket Error: ${err.message}`);
+    });
 
     return () => {
       socket.off('receive_message', onMessageReceived);
