@@ -21,7 +21,7 @@ export const usersApi = {
   getMe: () =>
     api.get<{ success: true; data: User }>('/users/me'),
 
-  updateMe: (data: Partial<Pick<User, 'name' | 'bio' | 'skillsOffered' | 'skillsWanted'>>) =>
+  updateMe: (data: Partial<Pick<User, 'name' | 'bio' | 'avatar' | 'skillsOffered' | 'skillsWanted'>>) =>
     api.put<{ success: true; data: User }>('/users/me', data),
 
   uploadAvatar: (file: File) => {

@@ -10,12 +10,13 @@ export const getMe = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const updateMe = asyncHandler(async (req: Request, res: Response) => {
-  const { name, bio, skillsOffered, skillsWanted } = req.body;
+  const { name, bio, skillsOffered, skillsWanted, avatar } = req.body;
   const user = await userService.updateProfile(req.user!.userId, {
     name,
     bio,
     skillsOffered,
     skillsWanted,
+    avatar,
   });
   res.json(successResponse(user));
 });

@@ -24,6 +24,7 @@ export class UserService {
     updates: {
       name?: string;
       bio?: string;
+      avatar?: string;
       skillsOffered?: { skillName: string; proficiency: 'Beginner' | 'Intermediate' | 'Advanced' }[];
       skillsWanted?: { skillName: string; priority: 'Low' | 'Medium' | 'High' }[];
     }

@@ -21,6 +21,7 @@ export function ProfilePage() {
   const profile = data?.data?.data;
 
   const [name, setName] = useState('');
+  const [avatar, setAvatar] = useState('');
   const [bio, setBio] = useState('');
   const [skillsOffered, setSkillsOffered] = useState<SkillOffered[]>([]);
   const [skillsWanted, setSkillsWanted] = useState<SkillWanted[]>([]);
@@ -33,6 +34,7 @@ export function ProfilePage() {
   useEffect(() => {
     if (profile) {
       setName(profile.name ?? '');
+      setAvatar(profile.avatar ?? '');
       setBio(profile.bio ?? '');
       setSkillsOffered(profile.skillsOffered ?? []);
       setSkillsWanted(profile.skillsWanted ?? []);
@@ -41,7 +43,7 @@ export function ProfilePage() {
 
   const updateMutation = useMutation({
     mutationFn: () =>
-      usersApi.updateMe({ name, bio, skillsOffered, skillsWanted }),
+      usersApi.updateMe({ name, bio, avatar, skillsOffered, skillsWanted }),
     onSuccess: () => {
       toast.success('Profile updated! ✨');
       qc.invalidateQueries({ queryKey: ['profile'] });
@@ -83,6 +85,11 @@ export function ProfilePage() {
     setNewWantedSkill('');
   };
 
+  const generateAvatar = () => {
+    const seed = Math.random().toString(36).substring(7);
+    setAvatar(`https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`);
+  };
+
   if (isLoading) return <ProfileSkeleton />;
 
   return (
@@ -96,35 +103,44 @@ export function ProfilePage() {
         {/* Avatar + Basic Info */}
         <div className="glass-card p-6">
           <div className="flex items-center gap-6">
-            <div className="relative">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                className="hidden"
-                id="avatar-input"
-                onChange={handleAvatarChange}
-              />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="relative group"
-              >
-                {profile?.avatar ? (
-                  <img src={profile.avatar} alt="Avatar" className="w-24 h-24 avatar" />
-                ) : (
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-brand-500 to-violet-500 flex items-center justify-center text-3xl font-bold text-white ring-2 ring-brand-500/30">
-                    {profile?.name?.[0]?.toUpperCase() ?? <User className="w-10 h-10" />}
+            <div className="flex flex-col items-center gap-3">
+              <div className="relative">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  id="avatar-input"
+                  onChange={handleAvatarChange}
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="relative group"
+                >
+                  {avatar ? (
+                    <img src={avatar} alt="Avatar" className="w-24 h-24 avatar" />
+                  ) : (
+                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-brand-500 to-violet-500 flex items-center justify-center text-3xl font-bold text-white ring-2 ring-brand-500/30">
+                      {name?.[0]?.toUpperCase() ?? <User className="w-10 h-10" />}
+                    </div>
+                  )}
+                  <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <Camera className="w-6 h-6 text-white" />
+                  </div>
+                </button>
+                {avatarMutation.isPending && (
+                  <div className="absolute inset-0 rounded-full bg-black/70 flex items-center justify-center">
+                    <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   </div>
                 )}
-                <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <Camera className="w-6 h-6 text-white" />
-                </div>
+              </div>
+              <button 
+                onClick={generateAvatar}
+                type="button" 
+                className="text-xs text-brand-400 hover:text-brand-300 transition-colors bg-white/5 px-3 py-1.5 rounded-lg"
+              >
+                Auto-generate
               </button>
-              {avatarMutation.isPending && (
-                <div className="absolute inset-0 rounded-full bg-black/70 flex items-center justify-center">
-                  <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                </div>
-              )}
             </div>
 
             <div className="flex-1 space-y-4">
