@@ -41,7 +41,11 @@ export function ChatsListPage() {
       ) : (
         <div className="space-y-2">
           {conversations.map((conv) => {
-            const other = conv.participants.find((p) => String(p._id) !== String(user?.id));
+            const other = conv.participants.find((p) => {
+              const pId = p._id || (p as any).id;
+              const myId = user?.id || (user as any)?._id;
+              return String(pId) !== String(myId);
+            });
             return (
               <button
                 key={conv._id}

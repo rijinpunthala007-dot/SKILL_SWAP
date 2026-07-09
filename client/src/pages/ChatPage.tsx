@@ -176,9 +176,11 @@ export function ChatPage() {
     queryFn: () => conversationsApi.getConversation(conversationId!),
     enabled: !!conversationId,
   });
-  const otherParticipant = convDetailsData?.data?.data?.participants?.find(
-    (p) => String(p._id) !== String(user?.id)
-  );
+  const otherParticipant = convDetailsData?.data?.data?.participants?.find((p) => {
+    const pId = p._id || (p as any).id;
+    const myId = user?.id || (user as any)?._id;
+    return String(pId) !== String(myId);
+  });
 
   if (loadingConv) {
     return (
@@ -267,15 +269,17 @@ export function ChatPage() {
             )}
 
             {messages.map((msg, i) => {
-              const isMine = String(msg.sender._id) === String(user?.id);
-              const showAvatar = !isMine && (i === 0 || messages[i - 1]?.sender._id !== msg.sender._id);
+              const senderId = msg.sender._id || (msg.sender as any).id;
+              const myId = user?.id || (user as any)?._id;
+              const isMine = String(senderId) === String(myId);
+              const showAvatar = !isMine && (i === 0 || (messages[i - 1]?.sender._id || (messages[i - 1]?.sender as any)?.id) !== senderId);
 
               return (
                 <div
                   key={msg._id}
                   className={clsx(
-                    'flex gap-2 items-end animate-fade-in',
-                    isMine ? 'flex-row-reverse' : 'flex-row'
+                    'w-full flex gap-2 items-end animate-fade-in',
+                    isMine ? 'justify-end' : 'justify-start'
                   )}
                 >
                   {/* Avatar */}
