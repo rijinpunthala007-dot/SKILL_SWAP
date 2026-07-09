@@ -64,6 +64,32 @@ export function setupSocketServer(httpServer: HttpServer): SocketServer {
     }
   });
 
+  // ── Serialization Helper ────────────────────────────────────────────────────
+  // Converts a Mongoose message document (populated sender) to a plain object
+  // with all ObjectIds stringified — safe for JSON/Socket.IO transport.
+  function serializeMessage(
+    msg: import('../models/Message.model').IMessage & {
+      sender: { _id: { toString(): string }; name: string; avatar?: string } | import('mongoose').Types.ObjectId;
+    },
+    tempId?: string
+  ) {
+    const s = msg.sender as { _id: { toString(): string }; name: string; avatar?: string };
+    return {
+      _id: msg._id.toString(),
+      conversationId: (msg.conversationId as unknown as { toString(): string }).toString(),
+      sender: {
+        _id: s._id.toString(),
+        name: s.name,
+        avatar: s.avatar,
+      },
+      content: msg.content,
+      readBy: msg.readBy.map((id) => id.toString()),
+      createdAt: msg.createdAt,
+      updatedAt: msg.updatedAt,
+      ...(tempId !== undefined ? { tempId } : {}),
+    };
+  }
+
   // ── Connection Handler ──────────────────────────────────────────────────────
   io.on('connection', async (socket) => {
     const s = socket as AuthenticatedSocket;
@@ -124,10 +150,11 @@ export function setupSocketServer(httpServer: HttpServer): SocketServer {
 
           await message.populate('sender', 'name avatar');
 
-          const messageData = {
-            ...message.toObject(),
-            tempId, // client uses this to reconcile optimistic UI
-          };
+          // Build plain-object payload with stringified IDs for socket transport
+          const messageData = serializeMessage(
+            message as Parameters<typeof serializeMessage>[0],
+            tempId
+          );
 
           // Broadcast to all room participants (including sender for confirmation)
           io.to(`conv:${conversationId}`).emit('receive_message', messageData);
@@ -184,7 +211,9 @@ export function setupSocketServer(httpServer: HttpServer): SocketServer {
 
           socket.emit('backfill_messages', {
             conversationId: data.conversationId,
-            messages,
+            messages: messages.map((m) =>
+              serializeMessage(m as Parameters<typeof serializeMessage>[0])
+            ),
           });
         } catch (error) {
           logger.error({ error, userId: s.userId }, 'Error during backfill');
