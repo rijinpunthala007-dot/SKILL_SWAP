@@ -82,6 +82,23 @@ export const conversationsApi = {
     ),
 };
 
+// ── Uploads ──────────────────────────────────────────────────────────────────
+export const uploadsApi = {
+  uploadAttachment: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post<{ success: true; data: { url: string; type: string; name: string; size: number } }>(
+      '/upload/attachment',
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+  },
+};
+
 // ── Quizzes ──────────────────────────────────────────────────────────────────
 export interface QuizQuestion {
   questionText: string;

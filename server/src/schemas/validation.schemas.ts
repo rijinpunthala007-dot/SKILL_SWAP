@@ -42,7 +42,15 @@ export const sendRequestSchema = z.object({
 });
 
 export const sendMessageSchema = z.object({
-  content: z.string().min(1).max(5000).trim(),
+  content: z.string().max(5000).trim().optional().default(''),
+  attachment: z.object({
+    url: z.string().url(),
+    type: z.string(),
+    name: z.string(),
+    size: z.number(),
+  }).optional(),
+}).refine((data) => data.content !== '' || data.attachment, {
+  message: 'Either content or attachment must be provided',
 });
 
 export const searchQuerySchema = z.object({

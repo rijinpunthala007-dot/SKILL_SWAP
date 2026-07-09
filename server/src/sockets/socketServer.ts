@@ -83,6 +83,7 @@ export function setupSocketServer(httpServer: HttpServer): SocketServer {
         avatar: s.avatar,
       },
       content: msg.content,
+      attachment: (msg as any).attachment,
       readBy: msg.readBy.map((id) => id.toString()),
       createdAt: msg.createdAt,
       updatedAt: msg.updatedAt,
@@ -126,11 +127,11 @@ export function setupSocketServer(httpServer: HttpServer): SocketServer {
     // ── Send Message ──────────────────────────────────────────────────────────
     socket.on(
       'send_message',
-      async (data: { conversationId: string; content: string; tempId: string }) => {
+      async (data: { conversationId: string; content?: string; tempId: string; attachment?: any }) => {
         try {
-          const { conversationId, content, tempId } = data;
+          const { conversationId, content, tempId, attachment } = data;
 
-          if (!content?.trim()) return;
+          if (!content?.trim() && !attachment) return;
 
           const isParticipant = await conversationRepository.isParticipant(
             conversationId,
@@ -145,7 +146,8 @@ export function setupSocketServer(httpServer: HttpServer): SocketServer {
           const message = await conversationService.sendMessage(
             conversationId,
             s.userId,
-            content.trim()
+            content?.trim() || '',
+            attachment
           );
 
           await message.populate('sender', 'name avatar');

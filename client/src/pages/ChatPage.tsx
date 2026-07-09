@@ -1,14 +1,15 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Send, ArrowLeft, Video, VideoOff } from 'lucide-react';
-import { conversationsApi } from '../services/api.service';
+import { Send, ArrowLeft, Video, VideoOff, Paperclip, File as FileIcon, Loader2 } from 'lucide-react';
+import { conversationsApi, uploadsApi } from '../services/api.service';
 import { useAuthStore } from '../store/authStore';
 import { useSocketChat } from '../hooks/useSocketChat';
 import { MessageSkeleton } from '../components/ui/Skeletons';
 import { format } from 'date-fns';
 import type { Message } from '../types';
 import clsx from 'clsx';
+import toast from 'react-hot-toast';
 
 export function ChatPage() {
   const { conversationId } = useParams<{ conversationId: string }>();
@@ -18,6 +19,8 @@ export function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const [showVideoCall, setShowVideoCall] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const lastSeenRef = useRef<string | undefined>(undefined);
@@ -137,16 +140,14 @@ export function ChatPage() {
     markRead();
   }, [messages.length, markRead]);
 
-  const handleSend = () => {
-    const content = inputValue.trim();
-    if (!content) return;
-
+  const sendChatMessage = (content: string, attachment?: any) => {
     const tempId = crypto.randomUUID();
     const optimisticMsg: Message = {
       _id: tempId,
       conversationId: conversationId!,
       sender: { _id: user!.id, name: user!.name, avatar: user?.avatar },
       content,
+      attachment,
       readBy: [user!.id],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -156,10 +157,40 @@ export function ChatPage() {
 
     // Optimistic update
     setMessages((prev) => [...prev, optimisticMsg]);
-    setInputValue('');
+    sendMessage(content, tempId, attachment);
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
-    // Send via socket
-    sendMessage(content, tempId);
+  const handleSend = () => {
+    const content = inputValue.trim();
+    if (!content && !isUploading) return;
+    setInputValue('');
+    sendChatMessage(content);
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File size must be under 5MB');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const res = await uploadsApi.uploadAttachment(file);
+      if (res.data.success) {
+        sendChatMessage('', res.data.data);
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.error?.message || 'Failed to upload file');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -307,6 +338,25 @@ export function ChatPage() {
                       msg.pending && 'opacity-60'
                     )}
                   >
+                    {msg.attachment && (
+                      <div className="mb-2 max-w-sm rounded-lg overflow-hidden border border-white/10 bg-black/20">
+                        {msg.attachment.type === 'image' ? (
+                          <img src={msg.attachment.url} alt={msg.attachment.name} className="w-full h-auto object-cover max-h-64" />
+                        ) : (
+                          <a href={msg.attachment.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 hover:bg-white/5 transition-colors">
+                            <div className="w-10 h-10 rounded bg-brand-500/20 text-brand-300 flex items-center justify-center flex-shrink-0">
+                              <FileIcon className="w-5 h-5" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{msg.attachment.name}</p>
+                              <p className="text-xs text-white/50 truncate">
+                                {(msg.attachment.size / 1024 / 1024).toFixed(2)} MB • {msg.attachment.type.toUpperCase()}
+                              </p>
+                            </div>
+                          </a>
+                        )}
+                      </div>
+                    )}
                     {msg.content}
                     <div className={clsx('flex items-center gap-1 mt-1', isMine ? 'justify-start' : 'justify-end')}>
                       <span className="text-[10px] opacity-50">
@@ -325,6 +375,22 @@ export function ChatPage() {
           {/* Input */}
           <div className="px-4 py-3 border-t border-surface-border bg-surface-card/50 backdrop-blur-lg">
             <div className="flex items-end gap-3">
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                onChange={handleFileUpload}
+                accept="image/*,application/pdf"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                className="btn-secondary flex-shrink-0 aspect-square p-2.5 bg-surface-elevated hover:bg-surface-elevated/80 border-surface-border text-white/70 hover:text-white"
+                title="Attach file (max 5MB)"
+              >
+                {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
+              </button>
               <textarea
                 id="chat-input"
                 value={inputValue}
@@ -338,7 +404,7 @@ export function ChatPage() {
               <button
                 id="chat-send"
                 onClick={handleSend}
-                disabled={!inputValue.trim()}
+                disabled={(!inputValue.trim() && !isUploading) || isUploading}
                 className="btn-primary flex-shrink-0 aspect-square p-2.5"
               >
                 <Send className="w-4 h-4" />

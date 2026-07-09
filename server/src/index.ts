@@ -101,6 +101,8 @@ app.get('/api/health', async (_req, res) => {
   });
 });
 
+import uploadRoutes from './routes/upload.routes';
+
 // ── API Routes ────────────────────────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -109,6 +111,7 @@ app.use('/api/conversations', conversationRoutes);
 app.use('/api/quizzes', quizRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/upload', uploadRoutes);
 app.use('/api', endorsementRoutes);
 
 // 404 handler

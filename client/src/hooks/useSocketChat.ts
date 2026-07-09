@@ -78,9 +78,9 @@ export function useSocketChat({
   }, [conversationId, socket]);
 
   const sendMessage = useCallback(
-    (content: string, tempId: string) => {
+    (content: string, tempId: string, attachment?: any) => {
       if (!socket) return;
-      socket.emit('send_message', { conversationId, content, tempId });
+      socket.emit('send_message', { conversationId, content, tempId, attachment });
     },
     [conversationId, socket]
   );

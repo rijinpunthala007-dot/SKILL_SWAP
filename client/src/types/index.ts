@@ -66,6 +66,12 @@ export interface Message {
   conversationId: string;
   sender: Pick<User, '_id' | 'name' | 'avatar'>;
   content: string;
+  attachment?: {
+    url: string;
+    type: string;
+    name: string;
+    size: number;
+  };
   readBy: string[];
   createdAt: string;
   updatedAt: string;
