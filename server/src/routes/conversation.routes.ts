@@ -9,6 +9,7 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/', conversationController.getConversations);
+router.get('/:conversationId', conversationController.getConversation);
 router.get('/:conversationId/messages', conversationController.getMessages);
 router.post(
   '/:conversationId/messages',

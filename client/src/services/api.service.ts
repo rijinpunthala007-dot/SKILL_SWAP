@@ -63,6 +63,9 @@ export const conversationsApi = {
   getAll: () =>
     api.get<{ success: true; data: Conversation[] }>('/conversations'),
 
+  getConversation: (conversationId: string) =>
+    api.get<{ success: true; data: Conversation }>(`/conversations/${conversationId}`),
+
   getMessages: (conversationId: string, params?: { limit?: number; cursor?: string }) =>
     api.get<{ success: true; data: Message[]; meta: { nextCursor: string | null } }>(
       `/conversations/${conversationId}/messages`,

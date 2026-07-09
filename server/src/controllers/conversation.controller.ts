@@ -8,6 +8,14 @@ export const getConversations = asyncHandler(async (req: Request, res: Response)
   res.json(successResponse(conversations));
 });
 
+export const getConversation = asyncHandler(async (req: Request, res: Response) => {
+  const conversation = await conversationService.getConversationById(
+    req.params.conversationId as string,
+    req.user!.userId
+  );
+  res.json(successResponse(conversation));
+});
+
 export const getMessages = asyncHandler(async (req: Request, res: Response) => {
   const conversationId = req.params.conversationId as string;
   const limit = Math.min(100, parseInt(req.query.limit as string) || 50);
