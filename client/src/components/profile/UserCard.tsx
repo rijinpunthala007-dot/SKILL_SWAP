@@ -47,6 +47,8 @@ export function UserCard({ scoredUser, showMatchScore = true }: UserCardProps) {
     requestMutation.mutate(firstMatchedSkill);
   };
 
+  const isRequested = requestMutation.isSuccess;
+
   return (
     <div className="glass-card p-5 hover:border-brand-500/40 transition-all duration-300 hover:shadow-lg hover:shadow-brand-900/20 animate-fade-in group">
       <div className="flex items-start gap-4">
@@ -135,10 +137,10 @@ export function UserCard({ scoredUser, showMatchScore = true }: UserCardProps) {
       <div className="flex gap-2 mt-4 pt-4 border-t border-surface-border">
         <button
           onClick={handleSendRequest}
-          disabled={requestMutation.isPending}
-          className="btn-primary text-xs flex-1"
+          disabled={requestMutation.isPending || isRequested}
+          className={`btn-primary text-xs flex-1 ${isRequested ? 'opacity-50 cursor-not-allowed bg-brand-800 hover:bg-brand-800' : ''}`}
         >
-          {requestMutation.isPending ? 'Sending...' : 'Request Exchange'}
+          {requestMutation.isPending ? 'Sending...' : isRequested ? 'Request Sent' : 'Request Exchange'}
         </button>
         <Link
           to={`/profile/${user._id}`}
