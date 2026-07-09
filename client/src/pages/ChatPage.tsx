@@ -279,7 +279,7 @@ export function ChatPage() {
                   key={msg._id}
                   className={clsx(
                     'w-full flex gap-2 items-end animate-fade-in',
-                    isMine ? 'justify-end' : 'justify-start'
+                    isMine ? 'flex-row' : 'flex-row-reverse'
                   )}
                 >
                   {/* Avatar */}
@@ -302,13 +302,13 @@ export function ChatPage() {
                     className={clsx(
                       'max-w-xs md:max-w-md lg:max-w-lg px-4 py-2.5 rounded-2xl text-sm leading-relaxed',
                       isMine
-                        ? 'bg-brand-600 text-white rounded-br-sm'
-                        : 'bg-surface-elevated border border-surface-border text-white rounded-bl-sm',
+                        ? 'bg-brand-600 text-white rounded-bl-sm'
+                        : 'bg-surface-elevated border border-surface-border text-white rounded-br-sm',
                       msg.pending && 'opacity-60'
                     )}
                   >
                     {msg.content}
-                    <div className={clsx('flex items-center gap-1 mt-1', isMine ? 'justify-end' : 'justify-start')}>
+                    <div className={clsx('flex items-center gap-1 mt-1', isMine ? 'justify-start' : 'justify-end')}>
                       <span className="text-[10px] opacity-50">
                         {format(new Date(msg.createdAt), 'HH:mm')}
                       </span>
