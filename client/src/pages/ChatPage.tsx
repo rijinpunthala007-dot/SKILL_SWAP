@@ -310,7 +310,7 @@ export function ChatPage() {
                   key={msg._id}
                   className={clsx(
                     'w-full flex gap-2 items-end animate-fade-in',
-                    isMine ? 'flex-row' : 'flex-row-reverse'
+                    isMine ? 'justify-end' : 'justify-start'
                   )}
                 >
                   {/* Avatar */}
