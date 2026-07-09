@@ -145,10 +145,10 @@ export function ChatPage() {
     const optimisticMsg: Message = {
       _id: tempId,
       conversationId: conversationId!,
-      sender: { _id: user!.id, name: user!.name, avatar: user?.avatar },
+      sender: { _id: (user as any)._id || user!.id, name: user!.name, avatar: user?.avatar },
       content,
       attachment,
-      readBy: [user!.id],
+      readBy: [(user as any)._id || user!.id],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       tempId,
