@@ -60,7 +60,8 @@ function AutocompleteInput({ value, onChange, onEnter, placeholder }: { value: s
             <div
               key={s}
               className="px-4 py-2 hover:bg-white/5 cursor-pointer text-sm text-white"
-              onClick={() => {
+              onMouseDown={(e) => {
+                e.preventDefault(); // Prevent input from losing focus before click registers
                 onChange(s);
                 setShowSuggestions(false);
               }}
