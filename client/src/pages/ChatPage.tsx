@@ -340,7 +340,7 @@ export function ChatPage() {
                   >
                     {msg.attachment && (
                       <div className="mb-2 max-w-sm rounded-lg overflow-hidden border border-white/10 bg-black/20">
-                        {msg.attachment.type === 'image' ? (
+                        {msg.attachment.type === 'image' && !msg.attachment.name.toLowerCase().endsWith('.pdf') ? (
                           <img src={msg.attachment.url} alt={msg.attachment.name} className="w-full h-auto object-cover max-h-64" />
                         ) : (
                           <a href={msg.attachment.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 hover:bg-white/5 transition-colors">

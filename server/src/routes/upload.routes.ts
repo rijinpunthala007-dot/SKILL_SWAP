@@ -48,10 +48,10 @@ router.post(
     const result = await uploadToCloudinary(req.file.buffer);
 
     let type = 'other';
-    if (result.resource_type === 'image') {
-      type = 'image';
-    } else if (req.file.mimetype === 'application/pdf') {
+    if (req.file.mimetype === 'application/pdf') {
       type = 'pdf';
+    } else if (result.resource_type === 'image') {
+      type = 'image';
     }
 
     const attachment = {
