@@ -170,7 +170,7 @@ export function DashboardPage() {
           ) : (
             <div className="space-y-2">
               {conversations.slice(0, 4).map((conv) => {
-                const other = conv.participants.find((p) => p._id !== user?.id);
+                const other = conv.participants.find((p) => String(p._id) !== String(user?.id));
                 return (
                   <Link
                     key={conv._id}

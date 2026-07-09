@@ -177,7 +177,7 @@ export function ChatPage() {
     enabled: !!conversationId,
   });
   const otherParticipant = convDetailsData?.data?.data?.participants?.find(
-    (p) => p._id !== user?.id
+    (p) => String(p._id) !== String(user?.id)
   );
 
   if (loadingConv) {
@@ -267,7 +267,7 @@ export function ChatPage() {
             )}
 
             {messages.map((msg, i) => {
-              const isMine = msg.sender._id === user?.id;
+              const isMine = String(msg.sender._id) === String(user?.id);
               const showAvatar = !isMine && (i === 0 || messages[i - 1]?.sender._id !== msg.sender._id);
 
               return (
