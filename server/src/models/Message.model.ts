@@ -5,6 +5,12 @@ export interface IMessage extends Document {
   conversationId: mongoose.Types.ObjectId;
   sender: mongoose.Types.ObjectId;
   content: string;
+  attachment?: {
+    url: string;
+    type: string;
+    name: string;
+    size: number;
+  };
   readBy: mongoose.Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
@@ -14,7 +20,13 @@ const messageSchema = new Schema<IMessage>(
   {
     conversationId: { type: Schema.Types.ObjectId, ref: 'Conversation', required: true },
     sender: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    content: { type: String, required: true, maxlength: 5000, trim: true },
+    content: { type: String, maxlength: 5000, trim: true, default: '' },
+    attachment: {
+      url: { type: String },
+      type: { type: String },
+      name: { type: String },
+      size: { type: Number },
+    },
     readBy: [{ type: Schema.Types.ObjectId, ref: 'User' }],
   },
   { timestamps: true }
