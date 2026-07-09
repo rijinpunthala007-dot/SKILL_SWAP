@@ -23,7 +23,7 @@ export function authenticate(req: Request, _res: Response, next: NextFunction): 
   const authHeader = req.headers.authorization;
 
   if (!authHeader?.startsWith('Bearer ')) {
-    throw AppError.unauthorized('No access token provided');
+    return next(AppError.unauthorized('No access token provided'));
   }
 
   const token = authHeader.slice(7);
@@ -34,9 +34,9 @@ export function authenticate(req: Request, _res: Response, next: NextFunction): 
     next();
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {
-      throw AppError.unauthorized('Access token expired', 'TOKEN_EXPIRED');
+      return next(AppError.unauthorized('Access token expired', 'TOKEN_EXPIRED'));
     }
-    throw AppError.unauthorized('Invalid access token', 'INVALID_TOKEN');
+    next(AppError.unauthorized('Invalid access token', 'INVALID_TOKEN'));
   }
 }
 

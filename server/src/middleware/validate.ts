@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { AnyZodObject, ZodError } from 'zod';
+import { AnyZodObject } from 'zod';
 
 /**
  * Factory that returns a middleware validating req.body, req.query, or req.params
@@ -13,11 +13,7 @@ export function validate(schema: AnyZodObject, source: 'body' | 'query' | 'param
       req[source] = validated; // replace with coerced/stripped values
       next();
     } catch (error) {
-      if (error instanceof ZodError) {
-        next(error);
-      } else {
-        next(error);
-      }
+      next(error);
     }
   };
 }

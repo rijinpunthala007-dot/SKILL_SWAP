@@ -90,7 +90,7 @@ export function ChatPage() {
     });
     lastSeenRef.current = msg._id;
     qc.invalidateQueries({ queryKey: ['conversations'] });
-  }, []);
+  }, [qc]);
 
   const onTyping = useCallback((userId: string) => {
     if (userId !== user?.id) {
@@ -135,7 +135,7 @@ export function ChatPage() {
   // Mark as read when page is visible
   useEffect(() => {
     markRead();
-  }, [messages.length]);
+  }, [messages.length, markRead]);
 
   const handleSend = () => {
     const content = inputValue.trim();
@@ -171,8 +171,12 @@ export function ChatPage() {
   };
 
   // Get other participant info
-  const conversationInfo = convData?.data;
-  const otherParticipant = (conversationInfo as unknown as { participants?: Array<{ _id: string; name: string; avatar?: string }> })?.participants?.find(
+  const { data: convDetailsData } = useQuery({
+    queryKey: ['conversationDetails', conversationId],
+    queryFn: () => conversationsApi.getConversation(conversationId!),
+    enabled: !!conversationId,
+  });
+  const otherParticipant = convDetailsData?.data?.data?.participants?.find(
     (p) => p._id !== user?.id
   );
 

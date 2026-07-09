@@ -59,7 +59,7 @@ export function useSocketChat({
       socket.off('backfill_messages');
       socket.off('message_error');
     };
-  }, [conversationId, lastSeenMessageId]);
+  }, [conversationId, lastSeenMessageId, onMessageReceived, onTyping, onStopTyping, onMessagesRead, onBackfill, socket]);
 
   const sendTyping = useCallback(() => {
     if (!socket) return;

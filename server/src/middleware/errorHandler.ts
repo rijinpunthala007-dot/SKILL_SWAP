@@ -78,12 +78,14 @@ export function errorHandler(
     'Unhandled error'
   );
 
+  const isDev = process.env.NODE_ENV === 'development';
+
   res.status(500).json({
     success: false,
     error: {
       code: 'INTERNAL_ERROR',
-      message: (error as Error)?.message ?? 'Unknown error',
-      stack: (error as Error)?.stack ?? ''
+      message: isDev ? ((error as Error)?.message ?? 'Unknown error') : 'Internal server error',
+      ...(isDev && { stack: (error as Error)?.stack }),
     },
   });
 }

@@ -64,7 +64,7 @@ export function QuizModal({ skillName, isOpen, onClose }: QuizModalProps) {
   };
 
   const handleSubmit = () => {
-    if (answers.length < totalQuestions || answers.includes(undefined as any)) {
+    if (answers.length < totalQuestions || answers.some((a) => a === undefined)) {
       toast.error('Please answer all questions before submitting');
       return;
     }

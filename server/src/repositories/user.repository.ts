@@ -1,11 +1,12 @@
 import { FilterQuery } from 'mongoose';
 import { IUser, UserModel } from '../models/User.model';
+import { escapeRegex } from '../utils/escapeRegex';
 
 export class UserRepository {
   async findById(id: string, includePassword = false): Promise<IUser | null> {
     const query = UserModel.findById(id);
     if (includePassword) query.select('+password');
-    return query.lean({ virtuals: true }).exec() as Promise<IUser | null>;
+    return query.exec();
   }
 
   async findByEmail(email: string, includePassword = false): Promise<IUser | null> {
@@ -38,11 +39,12 @@ export class UserRepository {
     };
 
     if (query) {
+      const safe = escapeRegex(query);
       filter.$or = [
-        { name: { $regex: query, $options: 'i' } },
-        { bio: { $regex: query, $options: 'i' } },
-        { 'skillsOffered.skillName': { $regex: query, $options: 'i' } },
-        { 'skillsWanted.skillName': { $regex: query, $options: 'i' } },
+        { name: { $regex: safe, $options: 'i' } },
+        { bio: { $regex: safe, $options: 'i' } },
+        { 'skillsOffered.skillName': { $regex: safe, $options: 'i' } },
+        { 'skillsWanted.skillName': { $regex: safe, $options: 'i' } },
       ];
     }
 

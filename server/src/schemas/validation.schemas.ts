@@ -14,6 +14,7 @@ export const loginSchema = z.object({
 export const updateProfileSchema = z.object({
   name: z.string().min(2).max(100).trim().optional(),
   bio: z.string().max(500).optional(),
+  avatar: z.string().optional(),
   skillsOffered: z
     .array(
       z.object({
@@ -48,4 +49,10 @@ export const searchQuerySchema = z.object({
   skill: z.string().optional(),
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(50).default(20),
+});
+
+export const submitQuizSchema = z.object({
+  answers: z
+    .array(z.number().int().min(0))
+    .min(1, 'At least one answer is required'),
 });

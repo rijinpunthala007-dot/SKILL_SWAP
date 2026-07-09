@@ -17,7 +17,7 @@ interface AuthenticatedSocket extends Socket {
 export function setupSocketServer(httpServer: HttpServer): SocketServer {
   const io = new SocketServer(httpServer, {
     cors: {
-      origin: env.CLIENT_URL,
+      origin: [env.CLIENT_URL.trim(), env.CLIENT_URL.trim().replace(/\/$/, '')],
       methods: ['GET', 'POST'],
       credentials: true,
     },
@@ -121,6 +121,8 @@ export function setupSocketServer(httpServer: HttpServer): SocketServer {
             s.userId,
             content.trim()
           );
+
+          await message.populate('sender', 'name avatar');
 
           const messageData = {
             ...message.toObject(),

@@ -15,7 +15,7 @@ export class GamificationService {
     action: keyof typeof POINTS_CONFIG
   ): Promise<{ pointsAwarded: number; newTotal: number }> {
     const amount = POINTS_CONFIG[action];
-    if (!amount) throw AppError.badRequest('Invalid points action', 'INVALID_GAMIFICATION_ACTION');
+    if (amount === undefined) throw AppError.badRequest('Invalid points action', 'INVALID_GAMIFICATION_ACTION');
 
     const user = await userRepository.incrementPoints(userId, amount);
     if (!user) throw AppError.notFound('User');
