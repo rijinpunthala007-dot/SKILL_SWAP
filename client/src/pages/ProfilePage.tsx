@@ -20,6 +20,60 @@ const TECH_AVATARS = [
   'https://api.dicebear.com/7.x/bottts/svg?seed=Luna&colors=fuchsia,purple',
 ];
 
+const COMMON_SKILLS = [
+  'Full Stack Development', 'Frontend Development', 'Backend Development',
+  'React', 'Node.js', 'TypeScript', 'JavaScript', 'Python', 'Java', 'C++', 'C#',
+  'UI/UX Design', 'Figma', 'Graphic Design',
+  'Data Science', 'Machine Learning', 'AI', 'Deep Learning', 'Data Analytics',
+  'DevOps', 'AWS', 'Docker', 'Kubernetes', 'CI/CD',
+  'Mobile Development', 'React Native', 'Flutter', 'iOS', 'Android', 'Swift', 'Kotlin',
+  'Cybersecurity', 'Ethical Hacking', 'Blockchain', 'Web3', 'Smart Contracts',
+  'SQL', 'MongoDB', 'PostgreSQL', 'Redis', 'GraphQL', 'REST APIs',
+  'Marketing', 'SEO', 'Digital Marketing', 'Copywriting'
+];
+
+function AutocompleteInput({ value, onChange, onEnter, placeholder }: { value: string, onChange: (v: string) => void, onEnter: () => void, placeholder: string }) {
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  
+  const suggestions = value.trim()
+    ? COMMON_SKILLS.filter(s => s.toLowerCase().includes(value.toLowerCase()) && s.toLowerCase() !== value.toLowerCase()).slice(0, 5)
+    : [];
+
+  return (
+    <div className="relative flex-1">
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setShowSuggestions(true);
+        }}
+        onFocus={() => setShowSuggestions(true)}
+        onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+        onKeyDown={(e) => e.key === 'Enter' && onEnter()}
+        placeholder={placeholder}
+        className="input w-full"
+      />
+      {showSuggestions && suggestions.length > 0 && (
+        <div className="absolute z-10 w-full mt-1 bg-surface-elevated border border-surface-border rounded-lg shadow-xl overflow-hidden max-h-48 overflow-y-auto">
+          {suggestions.map(s => (
+            <div
+              key={s}
+              className="px-4 py-2 hover:bg-white/5 cursor-pointer text-sm text-white"
+              onClick={() => {
+                onChange(s);
+                setShowSuggestions(false);
+              }}
+            >
+              {s}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ProfilePage() {
   const qc = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -204,14 +258,11 @@ export function ProfilePage() {
             ))}
           </div>
           <div className="flex gap-2">
-            <input
-              id="offered-skill-input"
-              type="text"
+            <AutocompleteInput
               value={newOfferedSkill}
-              onChange={(e) => setNewOfferedSkill(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && addOfferedSkill()}
+              onChange={setNewOfferedSkill}
+              onEnter={addOfferedSkill}
               placeholder="Add a skill..."
-              className="input flex-1"
             />
             <select
               value={newOfferedLevel}
@@ -244,14 +295,11 @@ export function ProfilePage() {
             ))}
           </div>
           <div className="flex gap-2">
-            <input
-              id="wanted-skill-input"
-              type="text"
+            <AutocompleteInput
               value={newWantedSkill}
-              onChange={(e) => setNewWantedSkill(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && addWantedSkill()}
+              onChange={setNewWantedSkill}
+              onEnter={addWantedSkill}
               placeholder="Add a skill you want to learn..."
-              className="input flex-1"
             />
             <select
               value={newWantedPriority}
