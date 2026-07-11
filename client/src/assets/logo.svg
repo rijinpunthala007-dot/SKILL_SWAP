@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="100%" height="100%">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="indigoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#818cf8" />
+      <stop offset="100%" stop-color="#4f46e5" />
+    </linearGradient>
+    
+    <linearGradient id="violetGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#c084fc" />
+      <stop offset="100%" stop-color="#7c3aed" />
+    </linearGradient>
+  </defs>
+
+  <g transform="translate(10, 10)">
+    <!-- Left Geometric Loop Segment (Indigo) -->
+    <path d="M 50 30 
+             C 32 30, 20 42, 20 58 
+             C 20 74, 32 86, 50 86 
+             C 62 86, 68 78, 68 70
+             C 68 62, 58 56, 50 56
+             C 42 56, 36 62, 36 70" 
+          fill="none" 
+          stroke="url(#indigoGrad)" 
+          stroke-width="10" 
+          stroke-linecap="round" 
+          stroke-linejoin="round" />
+
+    <!-- Right Geometric Loop Segment (Violet) - Interlocking into the left one -->
+    <path d="M 50 86 
+             C 68 86, 80 74, 80 58 
+             C 80 42, 68 30, 50 30 
+             C 38 30, 32 38, 32 46
+             C 32 54, 42 60, 50 60
+             C 58 60, 64 54, 64 46" 
+          fill="none" 
+          stroke="url(#violetGrad)" 
+          stroke-width="10" 
+          stroke-linecap="round" 
+          stroke-linejoin="round" />
+  </g>
+</svg>

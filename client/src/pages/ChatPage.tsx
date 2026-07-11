@@ -606,7 +606,7 @@ export function ChatPage() {
                       msg.pending && 'opacity-60'
                     )}
                   >
-                    {msg.attachment && (
+                    {msg.attachment && msg.attachment.url && (
                       <div className="mb-2 max-w-sm rounded-lg overflow-hidden border border-white/10 bg-black/20">
                         {msg.attachment.type === 'image' && !msg.attachment.name.toLowerCase().endsWith('.pdf') ? (
                           <img src={msg.attachment.url} alt={msg.attachment.name} className="w-full h-auto object-cover max-h-64" />
