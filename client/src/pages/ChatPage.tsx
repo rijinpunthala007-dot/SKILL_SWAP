@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Send, ArrowLeft, Video, VideoOff, Paperclip, File as FileIcon, Loader2 } from 'lucide-react';
+import { Send, ArrowLeft, Video, VideoOff, Paperclip, File as FileIcon, Loader2, Gamepad2, X, Check } from 'lucide-react';
 import { conversationsApi, uploadsApi } from '../services/api.service';
 import { useAuthStore } from '../store/authStore';
 import { useSocketChat } from '../hooks/useSocketChat';
+import { getSocket } from '../lib/socket';
 import { MessageSkeleton } from '../components/ui/Skeletons';
 import { format } from 'date-fns';
 import type { Message } from '../types';
@@ -24,6 +25,22 @@ export function ChatPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const lastSeenRef = useRef<string | undefined>(undefined);
+
+  const [challengeState, setChallengeState] = useState<{
+    status: 'idle' | 'requested' | 'receiving_request' | 'active' | 'finished';
+    skill?: string;
+    challengeId?: string;
+    challengerId?: string;
+    opponentId?: string;
+    currentQuestion?: { questionText: string; choices: string[] };
+    questionIndex?: number;
+    totalQuestions?: number;
+    scores?: Record<string, number>;
+    roundResult?: { correctOptionIndex: number; scores: Record<string, number> };
+    timeLeft?: number;
+    myAnswer?: number;
+  }>({ status: 'idle' });
+  const challengeTimerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
 
   // Jitsi Video Call embed logic
   useEffect(() => {
@@ -133,7 +150,74 @@ export function ChatPage() {
     onMessagesRead,
     lastSeenMessageId: lastSeenRef.current,
     onBackfill,
+    onChallengeRequestReceived: (data) => {
+      // The server broadcasts to the whole room — the challenger should stay 'requested', not flip to 'receiving_request'
+      const myId = user?.id || (user as any)?._id;
+      if (String(data.challengerId) === String(myId)) return; // I sent this — ignore
+      setChallengeState(prev => ({
+        ...prev,
+        status: 'receiving_request',
+        challengeId: data.challengeId,
+        challengerId: data.challengerId,
+        skill: data.skill
+      }));
+    },
+    onChallengeDeclined: () => {
+      setChallengeState({ status: 'idle' });
+      toast.error('Challenge was declined.');
+    },
+    onChallengeStart: (data) => {
+      setChallengeState({
+        status: 'active',
+        challengeId: data.challengeId,
+        challengerId: data.challengerId,
+        opponentId: data.opponentId,
+        skill: data.skill,
+        scores: { [data.challengerId]: 0, [data.opponentId]: 0 }
+      });
+    },
+    onChallengeQuestion: (data) => {
+      setChallengeState(prev => ({
+        ...prev,
+        status: 'active',
+        currentQuestion: data.question,
+        questionIndex: data.questionIndex,
+        totalQuestions: data.totalQuestions,
+        scores: data.scores,
+        roundResult: undefined,
+        myAnswer: undefined,
+        timeLeft: 15
+      }));
+      if (challengeTimerRef.current) clearInterval(challengeTimerRef.current);
+      challengeTimerRef.current = setInterval(() => {
+        setChallengeState(prev => prev.timeLeft && prev.timeLeft > 0 ? { ...prev, timeLeft: prev.timeLeft - 1 } : prev);
+      }, 1000);
+    },
+    onChallengeRoundResult: (data) => {
+      if (challengeTimerRef.current) clearInterval(challengeTimerRef.current);
+      setChallengeState(prev => ({
+        ...prev,
+        roundResult: { correctOptionIndex: data.correctOptionIndex, scores: data.scores },
+        scores: data.scores
+      }));
+    },
+    onChallengeEnd: (data) => {
+      if (challengeTimerRef.current) clearInterval(challengeTimerRef.current);
+      setChallengeState(prev => ({
+        ...prev,
+        status: 'finished',
+        scores: data.scores
+      }));
+      setTimeout(() => setChallengeState({ status: 'idle' }), 5000);
+    }
   });
+
+  // Cleanup timer
+  useEffect(() => {
+    return () => {
+      if (challengeTimerRef.current) clearInterval(challengeTimerRef.current);
+    };
+  }, []);
 
   // Mark as read when page is visible
   useEffect(() => {
@@ -255,25 +339,57 @@ export function ChatPage() {
           </div>
         </div>
 
-        <button
-          onClick={() => setShowVideoCall(!showVideoCall)}
-          className={clsx(
-            'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200',
-            showVideoCall
-              ? 'bg-rose-500/20 border border-rose-500/30 text-rose-300 hover:bg-rose-500/30'
-              : 'bg-brand-500/20 border border-brand-500/30 text-brand-300 hover:bg-brand-500/30'
+        <div className="flex gap-2">
+          {challengeState.status === 'idle' && (
+            <button
+              onClick={() => {
+                const socket = getSocket();
+                if (socket) {
+                  socket.emit('challenge_request', { conversationId, opponentId: otherParticipant?._id || (otherParticipant as any)?.id, skill: 'React' });
+                  setChallengeState({ status: 'requested' });
+                }
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 bg-violet-500/20 border border-violet-500/30 text-violet-300 hover:bg-violet-500/30"
+            >
+              <Gamepad2 className="w-4 h-4" /> Challenge
+            </button>
           )}
-        >
-          {showVideoCall ? (
-            <>
-              <VideoOff className="w-4 h-4" /> End Video
-            </>
-          ) : (
-            <>
-              <Video className="w-4 h-4" /> Start Video
-            </>
+          {challengeState.status === 'requested' && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/5 border border-white/10 text-white/40 cursor-not-allowed">
+              <Loader2 className="w-4 h-4 animate-spin" /> Waiting...
+            </div>
           )}
-        </button>
+          {challengeState.status === 'receiving_request' && (
+            <button
+              onClick={() => {
+                const socket = getSocket();
+                socket?.emit('challenge_response', { conversationId, accept: true });
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 bg-green-500/20 border border-green-500/50 text-green-300 hover:bg-green-500/30 animate-pulse"
+            >
+              <Gamepad2 className="w-4 h-4" /> Accept Challenge!
+            </button>
+          )}
+          <button
+            onClick={() => setShowVideoCall(!showVideoCall)}
+            className={clsx(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200',
+              showVideoCall
+                ? 'bg-rose-500/20 border border-rose-500/30 text-rose-300 hover:bg-rose-500/30'
+                : 'bg-brand-500/20 border border-brand-500/30 text-brand-300 hover:bg-brand-500/30'
+            )}
+          >
+            {showVideoCall ? (
+              <>
+                <VideoOff className="w-4 h-4" /> End Video
+              </>
+            ) : (
+              <>
+                <Video className="w-4 h-4" /> Start Video
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Main chat layout */}
@@ -286,7 +402,148 @@ export function ChatPage() {
         )}
 
         {/* Text Chat History & Input */}
-        <div className="flex-1 flex flex-col min-w-0 h-full">
+        <div className="flex-1 flex flex-col min-w-0 h-full relative">
+          
+          {/* Live Quiz Overlay */}
+          {challengeState.status !== 'idle' && (
+            <div className="absolute inset-x-4 top-4 z-10 glass-card p-6 border-brand-500/30 animate-fade-in shadow-xl shadow-brand-900/20">
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex items-center gap-2 text-brand-400 font-bold">
+                  <Gamepad2 className="w-5 h-5" />
+                  Live Challenge: {challengeState.skill}
+                </div>
+                {challengeState.status === 'requested' || challengeState.status === 'receiving_request' ? (
+                  <button onClick={() => {
+                    const socket = getSocket();
+                    if (challengeState.status === 'requested') {
+                      socket?.emit('challenge_response', { conversationId, accept: false }); // Cancel
+                      setChallengeState({ status: 'idle' });
+                    } else {
+                      socket?.emit('challenge_response', { conversationId, accept: false });
+                      setChallengeState({ status: 'idle' });
+                    }
+                  }} className="text-white/40 hover:text-white"><X className="w-4 h-4" /></button>
+                ) : null}
+              </div>
+
+              {challengeState.status === 'requested' && (
+                <div className="text-center py-4">
+                  <Loader2 className="w-6 h-6 animate-spin mx-auto text-brand-400 mb-2" />
+                  <p className="text-sm text-white/60">Waiting for opponent to accept...</p>
+                </div>
+              )}
+
+              {challengeState.status === 'receiving_request' && (
+                <div className="text-center py-4">
+                  <p className="text-sm text-white mb-4">You have been challenged to a {challengeState.skill} quiz!</p>
+                  <div className="flex justify-center gap-3">
+                    <button onClick={() => {
+                      const socket = getSocket();
+                      socket?.emit('challenge_response', { conversationId, accept: false });
+                      setChallengeState({ status: 'idle' });
+                    }} className="btn-secondary py-1.5 px-4 text-xs">Decline</button>
+                    <button onClick={() => {
+                      const socket = getSocket();
+                      socket?.emit('challenge_response', { conversationId, accept: true });
+                    }} className="btn-primary py-1.5 px-4 text-xs">Accept</button>
+                  </div>
+                </div>
+              )}
+
+              {/* Active: waiting for question to arrive */}
+              {challengeState.status === 'active' && !challengeState.currentQuestion && (
+                <div className="text-center py-8">
+                  <Loader2 className="w-8 h-8 animate-spin mx-auto text-brand-400 mb-3" />
+                  <p className="text-sm text-white font-medium">Get ready!</p>
+                  <p className="text-xs text-white/40 mt-1">First question coming up...</p>
+                </div>
+              )}
+
+              {challengeState.status === 'active' && challengeState.currentQuestion && (
+                <div>
+                  <div className="flex justify-between items-center text-xs text-white/60 mb-2">
+                    <span>Question {(challengeState.questionIndex ?? 0) + 1} of {challengeState.totalQuestions}</span>
+                    <span className={clsx("font-mono", (challengeState.timeLeft ?? 15) <= 5 ? "text-red-400" : "text-amber-400")}>
+                      {challengeState.timeLeft}s
+                    </span>
+                  </div>
+                  <div className="w-full bg-white/10 h-1.5 rounded-full mb-4 overflow-hidden">
+                    <div
+                      className={clsx("h-full transition-all duration-1000 ease-linear", (challengeState.timeLeft ?? 15) <= 5 ? "bg-red-400" : "bg-amber-400")}
+                      style={{ width: `${((challengeState.timeLeft ?? 0) / 15) * 100}%` }}
+                    />
+                  </div>
+                  
+                  <p className="text-sm font-medium text-white mb-4">{challengeState.currentQuestion.questionText}</p>
+                  
+                  <div className="space-y-2">
+                    {(challengeState.currentQuestion.choices ?? []).map((choice: string, idx: number) => {
+                      const isRevealed = challengeState.roundResult !== undefined;
+                      const isCorrect = isRevealed && challengeState.roundResult?.correctOptionIndex === idx;
+                      const isWrong = isRevealed && challengeState.myAnswer === idx && !isCorrect;
+                      const isMyPick = !isRevealed && challengeState.myAnswer === idx;
+                      
+                      return (
+                        <button
+                          key={idx}
+                          disabled={isRevealed || challengeState.myAnswer !== undefined}
+                          onClick={() => {
+                            if (isRevealed || challengeState.myAnswer !== undefined) return;
+                            setChallengeState(prev => ({ ...prev, myAnswer: idx }));
+                            const socket = getSocket();
+                            socket?.emit('challenge_answer', { conversationId, answerIndex: idx });
+                          }}
+                          className={clsx(
+                            "w-full text-left p-3 rounded-xl border text-sm transition-all",
+                            isCorrect
+                              ? "bg-green-500/20 border-green-500/50 text-green-300"
+                              : isWrong
+                              ? "bg-red-500/20 border-red-500/50 text-red-300"
+                              : isMyPick
+                              ? "bg-brand-500/30 border-brand-400/70 text-white"
+                              : isRevealed
+                              ? "bg-white/5 border-white/10 text-white/30"
+                              : "bg-white/5 border-white/10 text-white/80 hover:bg-white/10 hover:border-brand-500/50 cursor-pointer"
+                          )}
+                        >
+                          <div className="flex justify-between items-center">
+                            <span>{choice}</span>
+                            {isCorrect && <Check className="w-4 h-4 text-green-400" />}
+                            {isWrong && <X className="w-4 h-4 text-red-400" />}
+                            {isMyPick && !isRevealed && <span className="text-xs text-brand-300">✓ Selected</span>}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="mt-4 pt-4 border-t border-white/10 flex justify-between items-center text-xs">
+                    <span className="text-brand-300">You: {challengeState.scores?.[user?.id || (user as any)?._id] || 0}</span>
+                    <span className="text-violet-300">Opponent: {challengeState.scores?.[otherParticipant?._id || (otherParticipant as any)?.id] || 0}</span>
+                  </div>
+                </div>
+              )}
+
+              {challengeState.status === 'finished' && (
+                <div className="text-center py-6">
+                  <Gamepad2 className="w-10 h-10 mx-auto text-brand-400 mb-3" />
+                  <h3 className="text-lg font-bold text-white mb-2">Quiz Finished!</h3>
+                  <div className="flex justify-center gap-6 text-sm mb-4">
+                    <div className="text-center">
+                      <p className="text-white/60 mb-1">You</p>
+                      <p className="font-bold text-brand-400 text-xl">{challengeState.scores?.[user?.id || (user as any)?._id] || 0}</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-white/60 mb-1">Opponent</p>
+                      <p className="font-bold text-violet-400 text-xl">{challengeState.scores?.[otherParticipant?._id || (otherParticipant as any)?.id] || 0}</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-white/40">Check the chat for the final result!</p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Messages */}
           <div
             ref={scrollRef}
@@ -300,10 +557,21 @@ export function ChatPage() {
             )}
 
             {messages.map((msg, i) => {
+              if (msg.type === 'system' || msg.type === 'challenge') {
+                return (
+                  <div key={msg._id} className="w-full flex justify-center animate-fade-in my-4">
+                    <div className="bg-brand-500/10 border border-brand-500/20 px-4 py-2 rounded-full text-xs text-brand-300 flex items-center gap-2 text-center max-w-[80%]">
+                      {msg.type === 'challenge' && <Gamepad2 className="w-4 h-4" />}
+                      <span dangerouslySetInnerHTML={{ __html: msg.content.replace(/<@([a-f\d]{24})>/g, (_, id) => String(id) === String(user?.id) ? '<strong>You</strong>' : '<strong>Opponent</strong>') }} />
+                    </div>
+                  </div>
+                );
+              }
+
               const senderId = msg.sender._id || (msg.sender as any).id;
               const myId = user?.id || (user as any)?._id;
               const isMine = String(senderId) === String(myId);
-              const showAvatar = !isMine && (i === 0 || (messages[i - 1]?.sender._id || (messages[i - 1]?.sender as any)?.id) !== senderId);
+              const showAvatar = !isMine && (i === 0 || (messages[i - 1]?.sender._id || (messages[i - 1]?.sender as any)?.id) !== senderId || messages[i - 1]?.type === 'system' || messages[i - 1]?.type === 'challenge');
 
               return (
                 <div

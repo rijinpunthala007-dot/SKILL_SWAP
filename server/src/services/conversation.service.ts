@@ -43,14 +43,14 @@ export class ConversationService {
     return messages.reverse();
   }
 
-  async sendMessage(conversationId: string, senderId: string, content: string, attachment?: any) {
+  async sendMessage(conversationId: string, senderId: string, content: string, attachment?: any, type?: 'text' | 'system' | 'challenge') {
     const isParticipant = await conversationRepository.isParticipant(conversationId, senderId);
     if (!isParticipant) {
       throw AppError.forbidden('Not a participant in this conversation');
     }
 
     // Persist to DB FIRST — socket emit is just a UI convenience
-    const message = await messageRepository.create({ conversationId, sender: senderId, content, attachment });
+    const message = await messageRepository.create({ conversationId, sender: senderId, content, attachment, type: type || 'text' });
     const lastMessageText = attachment ? (content || `Attached a ${attachment.type}`) : content;
     await conversationRepository.updateLastMessage(conversationId, lastMessageText);
 

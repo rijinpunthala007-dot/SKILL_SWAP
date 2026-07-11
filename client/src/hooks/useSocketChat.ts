@@ -11,6 +11,12 @@ interface UseSocketChatOptions {
   onMessagesRead: (userId: string) => void;
   lastSeenMessageId?: string;
   onBackfill?: (messages: Message[]) => void;
+  onChallengeRequestReceived?: (data: any) => void;
+  onChallengeDeclined?: (data: any) => void;
+  onChallengeStart?: (data: any) => void;
+  onChallengeQuestion?: (data: any) => void;
+  onChallengeRoundResult?: (data: any) => void;
+  onChallengeEnd?: (data: any) => void;
 }
 
 export function useSocketChat({
@@ -21,55 +27,91 @@ export function useSocketChat({
   onMessagesRead,
   lastSeenMessageId,
   onBackfill,
+  onChallengeRequestReceived,
+  onChallengeDeclined,
+  onChallengeStart,
+  onChallengeQuestion,
+  onChallengeRoundResult,
+  onChallengeEnd,
 }: UseSocketChatOptions) {
   const socket = getSocket();
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const isTypingRef = useRef(false);
 
+  // Refs for all callbacks so socket listeners always call the latest version
+  // without needing to re-register on every render (fixes stale closures).
+  const cbRefs = useRef({
+    onMessageReceived, onTyping, onStopTyping, onMessagesRead, onBackfill,
+    onChallengeRequestReceived, onChallengeDeclined, onChallengeStart,
+    onChallengeQuestion, onChallengeRoundResult, onChallengeEnd,
+  });
+  cbRefs.current = {
+    onMessageReceived, onTyping, onStopTyping, onMessagesRead, onBackfill,
+    onChallengeRequestReceived, onChallengeDeclined, onChallengeStart,
+    onChallengeQuestion, onChallengeRoundResult, onChallengeEnd,
+  };
+
   useEffect(() => {
     if (!socket) return;
 
-    // Join conversation room
     socket.emit('join_conversation', { conversationId });
-
-    // Request backfill if we have a last seen ID (reconnect case)
     if (lastSeenMessageId) {
       socket.emit('request_backfill', { conversationId, lastSeenMessageId });
     }
 
-    socket.on('receive_message', onMessageReceived);
-    socket.on('typing', ({ userId }: { userId: string }) => onTyping(userId));
-    socket.on('stop_typing', ({ userId }: { userId: string }) => onStopTyping(userId));
-    socket.on('messages_read', ({ userId }: { userId: string }) => onMessagesRead(userId));
-    socket.on('backfill_messages', ({ messages }: { messages: Message[] }) => {
-      if (onBackfill) onBackfill(messages);
-    });
-    socket.on('message_error', ({ message: errMsg }: { message: string }) => {
-      toast.error(errMsg ?? 'Message failed to send');
-    });
-    socket.on('connect_error', (err) => {
-      toast.error(`Socket Error: ${err.message}`);
-    });
+    const handleMessage = (msg: Message) => cbRefs.current.onMessageReceived(msg);
+    const handleTyping = ({ userId }: { userId: string }) => cbRefs.current.onTyping(userId);
+    const handleStopTyping = ({ userId }: { userId: string }) => cbRefs.current.onStopTyping(userId);
+    const handleMessagesRead = ({ userId }: { userId: string }) => cbRefs.current.onMessagesRead(userId);
+    const handleBackfill = ({ messages }: { messages: Message[] }) => cbRefs.current.onBackfill?.(messages);
+    const handleMessageError = ({ message: errMsg }: { message: string }) => toast.error(errMsg ?? 'Message failed to send');
+    const handleConnectError = (err: Error) => toast.error(`Socket Error: ${err.message}`);
+    const handleChallengeRequest = (data: any) => cbRefs.current.onChallengeRequestReceived?.(data);
+    const handleChallengeDeclined = (data: any) => cbRefs.current.onChallengeDeclined?.(data);
+    const handleChallengeStart = (data: any) => cbRefs.current.onChallengeStart?.(data);
+    const handleChallengeQuestion = (data: any) => cbRefs.current.onChallengeQuestion?.(data);
+    const handleChallengeRoundResult = (data: any) => cbRefs.current.onChallengeRoundResult?.(data);
+    const handleChallengeEnd = (data: any) => cbRefs.current.onChallengeEnd?.(data);
+
+    socket.on('receive_message', handleMessage);
+    socket.on('typing', handleTyping);
+    socket.on('stop_typing', handleStopTyping);
+    socket.on('messages_read', handleMessagesRead);
+    socket.on('backfill_messages', handleBackfill);
+    socket.on('message_error', handleMessageError);
+    socket.on('connect_error', handleConnectError);
+    socket.on('challenge_request_received', handleChallengeRequest);
+    socket.on('challenge_declined', handleChallengeDeclined);
+    socket.on('challenge_start', handleChallengeStart);
+    socket.on('challenge_question', handleChallengeQuestion);
+    socket.on('challenge_round_result', handleChallengeRoundResult);
+    socket.on('challenge_end', handleChallengeEnd);
 
     return () => {
-      socket.off('receive_message', onMessageReceived);
-      socket.off('typing');
-      socket.off('stop_typing');
-      socket.off('messages_read');
-      socket.off('backfill_messages');
-      socket.off('message_error');
+      socket.off('receive_message', handleMessage);
+      socket.off('typing', handleTyping);
+      socket.off('stop_typing', handleStopTyping);
+      socket.off('messages_read', handleMessagesRead);
+      socket.off('backfill_messages', handleBackfill);
+      socket.off('message_error', handleMessageError);
+      socket.off('connect_error', handleConnectError);
+      socket.off('challenge_request_received', handleChallengeRequest);
+      socket.off('challenge_declined', handleChallengeDeclined);
+      socket.off('challenge_start', handleChallengeStart);
+      socket.off('challenge_question', handleChallengeQuestion);
+      socket.off('challenge_round_result', handleChallengeRoundResult);
+      socket.off('challenge_end', handleChallengeEnd);
     };
-  }, [conversationId, lastSeenMessageId, onMessageReceived, onTyping, onStopTyping, onMessagesRead, onBackfill, socket]);
+  // Only re-register if socket instance or room changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversationId, lastSeenMessageId, socket]);
 
   const sendTyping = useCallback(() => {
     if (!socket) return;
-
     if (!isTypingRef.current) {
       isTypingRef.current = true;
       socket.emit('typing', { conversationId });
     }
-
-    // Debounce — stop typing signal sent 1.5s after last keystroke
     clearTimeout(typingTimeoutRef.current);
     typingTimeoutRef.current = setTimeout(() => {
       isTypingRef.current = false;

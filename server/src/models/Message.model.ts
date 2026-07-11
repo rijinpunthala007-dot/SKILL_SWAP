@@ -11,6 +11,7 @@ export interface IMessage extends Document {
     name: string;
     size: number;
   };
+  type?: 'text' | 'system' | 'challenge';
   readBy: mongoose.Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
@@ -27,6 +28,7 @@ const messageSchema = new Schema<IMessage>(
       name: { type: String },
       size: { type: Number },
     },
+    type: { type: String, enum: ['text', 'system', 'challenge'], default: 'text' },
     readBy: [{ type: Schema.Types.ObjectId, ref: 'User' }],
   },
   { timestamps: true }

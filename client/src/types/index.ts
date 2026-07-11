@@ -64,7 +64,7 @@ export interface Conversation {
 export interface Message {
   _id: string;
   conversationId: string;
-  sender: Pick<User, '_id' | 'name' | 'avatar'>;
+  sender: User | { _id: string; name: string; avatar?: string };
   content: string;
   attachment?: {
     url: string;
@@ -72,6 +72,7 @@ export interface Message {
     name: string;
     size: number;
   };
+  type?: 'text' | 'system' | 'challenge';
   readBy: string[];
   createdAt: string;
   updatedAt: string;

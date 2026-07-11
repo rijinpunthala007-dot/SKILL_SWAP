@@ -7,11 +7,109 @@ import { env } from '../config/env';
 import { logger } from '../config/logger';
 import { JwtPayload } from '../middleware/authenticate';
 import { conversationService, presenceService } from '../services/conversation.service';
+import { liveQuizService } from '../services/liveQuiz.service';
+import { gamificationService } from '../services/gamification.service';
 import { conversationRepository, messageRepository } from '../repositories/conversation.repository';
 
 interface AuthenticatedSocket extends Socket {
   userId: string;
   userEmail: string;
+}
+
+// ── Challenge Orchestration (module-level to avoid stale closures) ──────────
+function broadcastQuestion(
+  io: SocketServer,
+  conversationId: string
+): void {
+  const currentState = liveQuizService.getChallenge(conversationId);
+  if (!currentState || currentState.status !== 'active') return;
+
+  const q = currentState.questions[currentState.currentQuestionIndex];
+  const qObj = typeof (q as any).toObject === 'function' ? (q as any).toObject() : { ...q };
+  const { correctIndex, ...clientQ } = qObj;
+
+  io.to(`conv:${conversationId}`).emit('challenge_question', {
+    questionIndex: currentState.currentQuestionIndex,
+    question: clientQ,
+    scores: currentState.scores,
+    totalQuestions: currentState.questions.length
+  });
+
+  const timerId = setTimeout(() => endRound(io, conversationId), 15000);
+  (currentState as any).timerId = timerId;
+}
+
+function endRound(
+  io: SocketServer,
+  conversationId: string
+): void {
+  const currentState = liveQuizService.getChallenge(conversationId);
+  if (!currentState || currentState.status !== 'active') return;
+
+  // Guard: only end the round once
+  if ((currentState as any).roundEnding) return;
+  (currentState as any).roundEnding = true;
+
+  if ((currentState as any).timerId) clearTimeout((currentState as any).timerId);
+
+  const q = currentState.questions[currentState.currentQuestionIndex];
+  const qObj = typeof (q as any).toObject === 'function' ? (q as any).toObject() : { ...q };
+
+  io.to(`conv:${conversationId}`).emit('challenge_round_result', {
+    correctOptionIndex: qObj.correctIndex,
+    scores: currentState.scores
+  });
+
+  setTimeout(() => {
+    (currentState as any).roundEnding = false;
+    const hasNext = liveQuizService.nextRound(conversationId);
+    if (hasNext) {
+      broadcastQuestion(io, conversationId);
+    } else {
+      // Snapshot scores before removing
+      const { challengerId, opponentId, scores, skill } = currentState;
+      io.to(`conv:${conversationId}`).emit('challenge_end', { scores });
+      liveQuizService.removeChallenge(conversationId);
+
+      const myScore = scores[challengerId] ?? 0;
+      const oppScore = scores[opponentId] ?? 0;
+      let text = `Quiz on ${skill} ended! Score: ${myScore}-${oppScore}. `;
+      let winnerId: string | null = null;
+      if (myScore > oppScore) {
+        text += `Winner: <@${challengerId}>`;
+        winnerId = challengerId;
+      } else if (oppScore > myScore) {
+        text += `Winner: <@${opponentId}>`;
+        winnerId = opponentId;
+      } else {
+        text += "It's a tie!";
+      }
+
+      if (winnerId) {
+        gamificationService.awardPoints(winnerId, 'quiz_passed').catch((e) => logger.error(e));
+      }
+
+      // Use challengerId as message sender (always a valid participant)
+      conversationService
+        .sendMessage(conversationId, challengerId, text, undefined, 'challenge')
+        .then((msg) => {
+          msg.populate('sender', 'name avatar').then(() => {
+            const messageData = {
+              _id: (msg._id as any).toString(),
+              conversationId,
+              sender: { _id: challengerId, name: 'System', avatar: undefined },
+              content: text,
+              readBy: [],
+              createdAt: msg.createdAt,
+              updatedAt: msg.updatedAt,
+              type: 'challenge',
+            };
+            io.to(`conv:${conversationId}`).emit('receive_message', messageData);
+          });
+        })
+        .catch((e) => logger.error(e, 'Failed to send quiz result message'));
+    }
+  }, 3000);
 }
 
 export function setupSocketServer(httpServer: HttpServer): SocketServer {
@@ -223,10 +321,94 @@ export function setupSocketServer(httpServer: HttpServer): SocketServer {
       }
     );
 
+    // ── Live Quiz Challenges ──────────────────────────────────────────────────
+    socket.on('challenge_request', async (data: { conversationId: string; opponentId: string; skill: string }) => {
+      try {
+        const state = await liveQuizService.createChallenge(data.conversationId, s.userId, data.opponentId, data.skill);
+        io.to(`conv:${data.conversationId}`).emit('challenge_request_received', {
+          challengeId: state.challengeId,
+          challengerId: s.userId,
+          skill: data.skill
+        });
+      } catch (err) {
+        logger.error(err, 'Error in challenge_request');
+      }
+    });
+
+    socket.on('challenge_response', async (data: { conversationId: string; accept: boolean }) => {
+      try {
+        const state = liveQuizService.getChallenge(data.conversationId);
+        if (!state) return;
+
+        if (!data.accept) {
+          liveQuizService.removeChallenge(data.conversationId);
+          io.to(`conv:${data.conversationId}`).emit('challenge_declined', { userId: s.userId });
+          return;
+        }
+
+        await liveQuizService.startChallenge(data.conversationId);
+
+        io.to(`conv:${data.conversationId}`).emit('challenge_start', {
+          challengeId: state.challengeId,
+          skill: state.skill,
+          challengerId: state.challengerId,
+          opponentId: state.opponentId
+        });
+        setTimeout(() => broadcastQuestion(io, data.conversationId), 2000);
+      } catch (err) {
+        logger.error(err, 'Error in challenge_response');
+      }
+    });
+
+    socket.on('challenge_answer', (data: { conversationId: string; answerIndex: number }) => {
+      const state = liveQuizService.getChallenge(data.conversationId);
+      if (!state || state.status !== 'active') return;
+
+      const bothAnswered = liveQuizService.submitAnswer(data.conversationId, s.userId, data.answerIndex);
+      if (bothAnswered) {
+        endRound(io, data.conversationId);
+      }
+    });
+
     // ── Disconnect ────────────────────────────────────────────────────────────
     socket.on('disconnect', async (reason) => {
       clearInterval(heartbeatInterval);
       logger.info({ userId: s.userId, socketId: s.id, reason }, 'Socket disconnected');
+
+      // Forfeit active challenge if any — use a lock flag so only the first
+      // disconnect of the two sockets fires the forfeit message.
+      const activeChallengeEntry = Array.from(liveQuizService['challenges'].entries()).find(
+        ([_, st]) =>
+          (st.challengerId === s.userId || st.opponentId === s.userId) &&
+          st.status === 'active'
+      );
+      if (activeChallengeEntry) {
+        const [conversationId, state] = activeChallengeEntry;
+        if (!(state as any).forfeitSent) {
+          (state as any).forfeitSent = true;
+          const opponentId = state.challengerId === s.userId ? state.opponentId : state.challengerId;
+
+          io.to(`conv:${conversationId}`).emit('challenge_end', {
+            scores: { [s.userId]: -1, [opponentId]: 999 }
+          });
+
+          conversationService
+            .sendMessage(
+              conversationId,
+              state.challengerId,
+              `<@${s.userId}> disconnected and forfeited the quiz!`,
+              undefined,
+              'system'
+            )
+            .then((msg) => {
+              const messageData = serializeMessage(msg as any, 'system');
+              io.to(`conv:${conversationId}`).emit('receive_message', messageData);
+            })
+            .catch((e) => logger.error(e));
+
+          liveQuizService.removeChallenge(conversationId);
+        }
+      }
 
       await presenceService.setOffline(s.userId);
       socket.broadcast.emit('user_offline', { userId: s.userId });

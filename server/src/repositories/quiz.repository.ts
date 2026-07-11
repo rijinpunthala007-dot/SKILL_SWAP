@@ -1,10 +1,10 @@
-import { ISkillQuiz, SkillQuizModel } from '../models/SkillQuiz.model';
+import { SkillQuizModel } from '../models/SkillQuiz.model';
 
 export class QuizRepository {
-  async findBySkillName(skillName: string): Promise<ISkillQuiz | null> {
+  async findBySkillName(skillName: string): Promise<any | null> {
     return SkillQuizModel.findOne({
       skillName: { $regex: new RegExp(`^${skillName}$`, 'i') },
-    }).exec();
+    }).lean().exec(); // .lean() returns a plain JS object, not a Mongoose document
   }
 }
 

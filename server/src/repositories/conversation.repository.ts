@@ -76,6 +76,7 @@ export class MessageRepository {
     sender: string;
     content: string;
     attachment?: any;
+    type?: string;
   }): Promise<IMessage> {
     const message = new MessageModel(data);
     return message.save();
