@@ -164,21 +164,23 @@ export function AnalyticsPage() {
                 No user skills registered in system. Seed data first!
               </div>
             ) : (
-              <div className="h-72">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={skillComparisonData} margin={{ top: 10, right: 10, left: -10, bottom: 15 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                    <XAxis dataKey="name" stroke="rgba(255,255,255,0.4)" fontSize={11} angle={-15} textAnchor="end" interval={0} />
-                    <YAxis stroke="rgba(255,255,255,0.4)" fontSize={11} />
-                    <Tooltip
-                      contentStyle={{ background: '#1e1b4b', border: '1px solid #312e81', borderRadius: '8px' }}
-                      itemStyle={{ color: '#fff' }}
-                    />
-                    <Legend wrapperStyle={{ fontSize: 11, paddingTop: 10 }} />
-                    <Bar dataKey="Offered" name="Supply (Offered)" fill="#10b981" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="Wanted" name="Demand (Wanted)" fill="#6366f1" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+              <div className="w-full overflow-x-auto scrollbar-hide">
+                <div className="h-72 min-w-[600px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={skillComparisonData} margin={{ top: 10, right: 10, left: -10, bottom: 15 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                      <XAxis dataKey="name" stroke="rgba(255,255,255,0.4)" fontSize={11} angle={-15} textAnchor="end" interval={0} />
+                      <YAxis stroke="rgba(255,255,255,0.4)" fontSize={11} />
+                      <Tooltip
+                        contentStyle={{ background: '#1e1b4b', border: '1px solid #312e81', borderRadius: '8px' }}
+                        itemStyle={{ color: '#fff' }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: 11, paddingTop: 10 }} />
+                      <Bar dataKey="Offered" name="Supply (Offered)" fill="#10b981" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="Wanted" name="Demand (Wanted)" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
             )}
           </div>

@@ -163,7 +163,7 @@ export function ProfilePage() {
       <div className="space-y-6">
         {/* Avatar + Basic Info */}
         <div className="glass-card p-6">
-          <div className="flex items-center gap-6">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
             <div className="flex flex-col items-center gap-3">
               <div className="relative">
                 <input
@@ -211,7 +211,7 @@ export function ProfilePage() {
               </div>
             </div>
 
-            <div className="flex-1 space-y-4">
+            <div className="w-full flex-1 space-y-4">
               <div>
                 <label className="block text-xs text-white/50 mb-1.5 uppercase tracking-wider">Full Name</label>
                 <input
@@ -258,23 +258,25 @@ export function ProfilePage() {
               </span>
             ))}
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <AutocompleteInput
               value={newOfferedSkill}
               onChange={setNewOfferedSkill}
               onEnter={addOfferedSkill}
               placeholder="Add a skill..."
             />
-            <select
-              value={newOfferedLevel}
-              onChange={(e) => setNewOfferedLevel(e.target.value as typeof PROFICIENCY_LEVELS[number])}
-              className="input w-36 flex-shrink-0"
-            >
-              {PROFICIENCY_LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
-            </select>
-            <button onClick={addOfferedSkill} className="btn-secondary px-3">
-              <Plus className="w-4 h-4" />
-            </button>
+            <div className="flex gap-2">
+              <select
+                value={newOfferedLevel}
+                onChange={(e) => setNewOfferedLevel(e.target.value as typeof PROFICIENCY_LEVELS[number])}
+                className="input sm:w-36 flex-1 sm:flex-initial"
+              >
+                {PROFICIENCY_LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
+              </select>
+              <button onClick={addOfferedSkill} className="btn-secondary px-4 flex-shrink-0">
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -295,23 +297,25 @@ export function ProfilePage() {
               </span>
             ))}
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <AutocompleteInput
               value={newWantedSkill}
               onChange={setNewWantedSkill}
               onEnter={addWantedSkill}
               placeholder="Add a skill you want to learn..."
             />
-            <select
-              value={newWantedPriority}
-              onChange={(e) => setNewWantedPriority(e.target.value as typeof PRIORITY_LEVELS[number])}
-              className="input w-28 flex-shrink-0"
-            >
-              {PRIORITY_LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
-            </select>
-            <button onClick={addWantedSkill} className="btn-secondary px-3">
-              <Plus className="w-4 h-4" />
-            </button>
+            <div className="flex gap-2">
+              <select
+                value={newWantedPriority}
+                onChange={(e) => setNewWantedPriority(e.target.value as typeof PRIORITY_LEVELS[number])}
+                className="input sm:w-36 flex-1 sm:flex-initial"
+              >
+                {PRIORITY_LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
+              </select>
+              <button onClick={addWantedSkill} className="btn-secondary px-4 flex-shrink-0">
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
 

@@ -75,7 +75,7 @@ export function PublicProfilePage() {
 
       {/* Profile header */}
       <div className="glass-card p-6 mb-6">
-        <div className="flex items-start gap-6">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left">
           {profile.avatar ? (
             <img src={profile.avatar} alt={profile.name} className="w-24 h-24 avatar flex-shrink-0" />
           ) : (
@@ -84,21 +84,21 @@ export function PublicProfilePage() {
             </div>
           )}
 
-          <div className="flex-1 min-w-0">
+          <div className="w-full flex-1 min-w-0">
             <h1 className="text-2xl font-bold text-white">{profile.name}</h1>
             {profile.bio && (
               <p className="text-white/60 mt-2 text-sm leading-relaxed">{profile.bio}</p>
             )}
 
             {!isOwnProfile && (
-              <div className="flex gap-3 mt-4">
+              <div className="flex justify-center sm:justify-start gap-3 mt-4">
                 <button
                   onClick={() => {
                     const skill = profile.skillsOffered[0]?.skillName ?? 'General';
                     requestMutation.mutate(skill);
                   }}
                   disabled={requestMutation.isPending}
-                  className="btn-primary text-sm"
+                  className="btn-primary text-sm w-full sm:w-auto"
                   id="send-request-btn"
                 >
                   {requestMutation.isPending ? 'Sending...' : 'Request Exchange'}
@@ -106,9 +106,11 @@ export function PublicProfilePage() {
               </div>
             )}
             {isOwnProfile && (
-              <Link to="/profile" className="btn-secondary text-sm mt-4 inline-flex">
-                Edit Profile
-              </Link>
+              <div className="flex justify-center sm:justify-start">
+                <Link to="/profile" className="btn-secondary text-sm mt-4 inline-flex w-full sm:w-auto justify-center">
+                  Edit Profile
+                </Link>
+              </div>
             )}
           </div>
         </div>

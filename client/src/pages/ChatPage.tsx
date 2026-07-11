@@ -351,12 +351,14 @@ export function ChatPage() {
               }}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 bg-violet-500/20 border border-violet-500/30 text-violet-300 hover:bg-violet-500/30"
             >
-              <Gamepad2 className="w-4 h-4" /> Challenge
+              <Gamepad2 className="w-4 h-4" />
+              <span className="hidden sm:inline">Challenge</span>
             </button>
           )}
           {challengeState.status === 'requested' && (
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/5 border border-white/10 text-white/40 cursor-not-allowed">
-              <Loader2 className="w-4 h-4 animate-spin" /> Waiting...
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span className="hidden sm:inline">Waiting...</span>
             </div>
           )}
           {challengeState.status === 'receiving_request' && (
@@ -367,7 +369,8 @@ export function ChatPage() {
               }}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 bg-green-500/20 border border-green-500/50 text-green-300 hover:bg-green-500/30 animate-pulse"
             >
-              <Gamepad2 className="w-4 h-4" /> Accept Challenge!
+              <Gamepad2 className="w-4 h-4" />
+              <span className="hidden sm:inline">Accept!</span>
             </button>
           )}
           <button
@@ -381,11 +384,13 @@ export function ChatPage() {
           >
             {showVideoCall ? (
               <>
-                <VideoOff className="w-4 h-4" /> End Video
+                <VideoOff className="w-4 h-4" />
+                <span className="hidden sm:inline">End Video</span>
               </>
             ) : (
               <>
-                <Video className="w-4 h-4" /> Start Video
+                <Video className="w-4 h-4" />
+                <span className="hidden sm:inline">Start Video</span>
               </>
             )}
           </button>
@@ -393,10 +398,10 @@ export function ChatPage() {
       </div>
 
       {/* Main chat layout */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
         {/* Jitsi Video Container */}
         {showVideoCall && (
-          <div className="w-[60%] border-r border-surface-border bg-black/40 flex items-center justify-center relative">
+          <div className="w-full md:w-[60%] h-[40vh] md:h-full border-b md:border-b-0 md:border-r border-surface-border bg-black/40 flex items-center justify-center relative">
             <div id="jitsi-container" className="w-full h-full" />
           </div>
         )}
@@ -406,7 +411,7 @@ export function ChatPage() {
           
           {/* Live Quiz Overlay */}
           {challengeState.status !== 'idle' && (
-            <div className="absolute inset-x-4 top-4 z-10 glass-card p-6 border-brand-500/30 animate-fade-in shadow-xl shadow-brand-900/20">
+            <div className="absolute inset-x-2 md:inset-x-4 top-2 md:top-4 z-10 glass-card p-4 md:p-6 border-brand-500/30 animate-fade-in shadow-xl shadow-brand-900/20">
               <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-2 text-brand-400 font-bold">
                   <Gamepad2 className="w-5 h-5" />
