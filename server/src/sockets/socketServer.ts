@@ -115,7 +115,18 @@ function endRound(
 export function setupSocketServer(httpServer: HttpServer): SocketServer {
   const io = new SocketServer(httpServer, {
     cors: {
-      origin: [env.CLIENT_URL.trim(), env.CLIENT_URL.trim().replace(/\/$/, '')],
+      origin: (origin, callback) => {
+        const allowedOrigins = [
+          env.CLIENT_URL.trim(),
+          env.CLIENT_URL.trim().replace(/\/$/, ''),
+          'https://skiill-swapp.vercel.app',
+        ];
+        if (!origin || allowedOrigins.includes(origin) || origin.startsWith('http://localhost:') || origin.endsWith('.vercel.app')) {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
+      },
       methods: ['GET', 'POST'],
       credentials: true,
     },

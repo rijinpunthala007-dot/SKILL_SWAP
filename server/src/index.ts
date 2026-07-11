@@ -39,7 +39,18 @@ app.set('trust proxy', 1); // Essential for rate limiting behind a reverse proxy
 app.use(helmet());
 app.use(
   cors({
-    origin: [env.CLIENT_URL.trim(), env.CLIENT_URL.trim().replace(/\/$/, '')],
+    origin: (origin, callback) => {
+      const allowedOrigins = [
+        env.CLIENT_URL.trim(),
+        env.CLIENT_URL.trim().replace(/\/$/, ''),
+        'https://skiill-swapp.vercel.app',
+      ];
+      if (!origin || allowedOrigins.includes(origin) || origin.startsWith('http://localhost:') || origin.endsWith('.vercel.app')) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id'],
